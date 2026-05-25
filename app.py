@@ -16,6 +16,7 @@ from sklearn.ensemble import RandomForestRegressor  # 导入RandomForestRegresso
 from function import hash_code  # 导入自定义函数hash_code，用于密码哈希
 import sqlite3  # 导入sqlite3模块，用于SQLite数据库操作
 import os  # 导入os模块，用于操作系统相关功能
+from bond_agent import BondAnalystAgent
 
 app = Flask(__name__)  # 创建Flask应用实例
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-me')  # 设置会话密钥，生产环境应从环境变量读取
@@ -344,6 +345,24 @@ def suggestions():
 @app.route('/report')  # 定义报告页面路由
 def report():
     return render_template('report.html')  # 渲染报告页面
+
+
+@app.route('/agent', methods=['GET', 'POST'])
+def agent_page():
+    result = None
+    question = ''
+    if request.method == 'POST':
+        question = request.form.get('question', '').strip()
+        result = BondAnalystAgent().answer(question)
+    return render_template('agent.html', result=result, question=question)
+
+
+@app.route('/api/agent/query', methods=['POST'])
+def agent_query():
+    payload = request.get_json(silent=True) or {}
+    question = payload.get('question') or request.form.get('question', '')
+    result = BondAnalystAgent().answer(question)
+    return jsonify(result)
 
 import random  # 再次导入random模块
 from datetime import datetime, timedelta  # 再次导入datetime和timedelta

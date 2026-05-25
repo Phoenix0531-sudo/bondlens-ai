@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+
+{% block title %}AI Bond Analyst Agent{% endblock %}
+
+{% block content %}
+<style>
+  .agent-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+    gap: 24px;
+  }
+  .agent-panel {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 20px;
+  }
+  .trace-list {
+    padding-left: 0;
+    list-style: none;
+  }
+  .trace-list li {
+    border-left: 3px solid #005f73;
+    padding: 8px 0 8px 12px;
+    margin-bottom: 8px;
+    background: #f8f9fa;
+  }
+  .answer-box {
+    white-space: pre-wrap;
+    line-height: 1.6;
+  }
+  .evidence-table {
+    font-size: 14px;
+  }
+  @media (max-width: 992px) {
+    .agent-layout {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<div class="agent-layout">
+  <section class="agent-panel">
+    <h1>AI Bond Analyst Agent</h1>
+    <p class="text-muted">基于 data/testdata.xlsx 的本地工具调用分析。非投资建议，仅用于学习和研究。</p>
+
+    <form method="post" class="mb-4">
+      <div class="form-group">
+        <label for="question">自然语言问题</label>
+        <textarea id="question" name="question" class="form-control" rows="4"
+                  placeholder="例如：找出收益率最高的债券，并说明是否有异常收益率样本。">{{ question }}</textarea>
+      </div>
+      <button class="btn btn-primary" type="submit">运行 Agent</button>
+    </form>
+
+    {% if result %}
+      <h2>Final Answer</h2>
+      <div class="agent-panel answer-box">{{ result.final_answer }}</div>
+    {% endif %}
+  </section>
+
+  <aside class="agent-panel">
+    <h2>Tool Trace</h2>
+    {% if result %}
+      <ul class="trace-list">
+        {% for item in result.tool_trace %}
+          <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+      <p class="badge badge-secondary">LLM: {{ 'enabled' if result.used_llm else 'fallback' }}</p>
+    {% else %}
+      <p class="text-muted">提交问题后展示每一步工具调用。</p>
+    {% endif %}
+  </aside>
+</div>
+
+{% if result %}
+  <section class="agent-panel mt-4">
+    <h2>Data Evidence</h2>
+    <div class="row">
+      <div class="col-md-6">
+        <h3>Market Summary</h3>
+        <pre>{{ result.data_evidence.market.yield_summary | tojson(indent=2) }}</pre>
+      </div>
+      <div class="col-md-6">
+        <h3>Outliers</h3>
+        <p>异常样本数量：{{ result.data_evidence.outliers.outlier_count }}</p>
+        <pre>{{ result.data_evidence.outliers.metadata | tojson(indent=2) }}</pre>
+      </div>
+    </div>
+
+    <h3>Top Ranked Bonds</h3>
+    <div class="table-responsive">
+      <table class="table table-sm table-striped evidence-table">
+        <thead>
+          <tr>
+            <th>债券简称</th>
+            <th>待偿期</th>
+            <th>收益率(%)</th>
+            <th>成交量(亿元)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for bond in result.data_evidence.ranking.records %}
+            <tr>
+              <td>{{ bond['债券简称'] }}</td>
+              <td>{{ bond['待偿期'] }}</td>
+              <td>{{ bond['收盘到期收益率(%)'] }}</td>
+              <td>{{ bond['交易量(亿元)'] }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endif %}
+{% endblock %}
