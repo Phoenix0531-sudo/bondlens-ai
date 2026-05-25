@@ -1,0 +1,12 @@
+services:
+  bond-agent:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      FLASK_ENV: ${FLASK_ENV:-production}
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-me}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.4-mini}
+      FLASK_RUN_HOST: 0.0.0.0
+      PORT: 5000

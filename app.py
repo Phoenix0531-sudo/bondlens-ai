@@ -416,4 +416,8 @@ def kdj():
     return render_template('kdj.html')  # 渲染KDJ页面
 
 if __name__ == '__main__':
-    app.run(debug=True)  # 启动Flask应用，开启调试模式
+    app.run(
+        host=os.environ.get('FLASK_RUN_HOST', '0.0.0.0'),
+        port=int(os.environ.get('PORT', '5000')),
+        debug=os.environ.get('FLASK_ENV') == 'development',
+    )  # 启动Flask应用
