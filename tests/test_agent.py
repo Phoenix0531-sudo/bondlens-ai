@@ -7,7 +7,81 @@ def test_agent_fallback_uses_local_tools_without_openai_key(monkeypatch):
     result = BondAnalystAgent().answer("搜索23附息国债26并给出收益率分析")
 
     assert result["used_llm"] is False
+    assert result["llm_status"] == "disabled"
+    assert result["llm_error"] is None
+    assert result["plan"]["intent"] == "bond_report"
     assert "search_bonds" in result["tools_used"]
+    assert "compare_bond_to_market" in result["tools_used"]
     assert "generate_bond_report" in result["tools_used"]
+    assert "23附息国债26" in result["final_answer"]
     assert "非投资建议，仅用于学习和研究" in result["final_answer"]
     assert result["tool_trace"][-1] == "-> final answer"
+
+
+def test_agent_tool_selection_for_market_overview(monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
+    result = BondAnalystAgent().answer("当前样本收益率分布是什么样？")
+
+    assert result["plan"]["intent"] == "market_overview"
+    assert result["tools_used"] == ["describe_market", "generate_bond_report"]
+    assert "rank_bonds" not in result["tools_used"]
+    assert "detect_yield_outliers" not in result["tools_used"]
+    assert "-> generate_bond_report()" in result["tool_trace"]
+
+
+def test_agent_search_only_answer_shows_search_evidence(monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
+    result = BondAnalystAgent().answer("筛选收益率大于 3 的债券")
+
+    assert result["plan"]["intent"] == "bond_search"
+    assert result["tools_used"] == ["search_bonds", "generate_bond_report"]
+    assert "检索命中数量" in result["final_answer"]
+    assert "检索条件" in result["final_answer"]
+
+
+class _FakeResponse:
+    output_text = "LLM enhanced answer。非投资建议，仅用于学习和研究。"
+
+
+class _FakeResponses:
+    def create(self, **kwargs):
+        return _FakeResponse()
+
+
+class _FakeClient:
+    responses = _FakeResponses()
+
+
+class _FailingResponses:
+    def create(self, **kwargs):
+        raise RuntimeError("boom")
+
+
+class _FailingClient:
+    responses = _FailingResponses()
+
+
+def test_agent_llm_status_success(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setattr(BondAnalystAgent, "_create_openai_client", lambda self, api_key: _FakeClient())
+
+    result = BondAnalystAgent().answer("当前样本收益率分布是什么样？")
+
+    assert result["used_llm"] is True
+    assert result["llm_status"] == "success"
+    assert result["llm_error"] is None
+    assert result["final_answer"].startswith("LLM enhanced answer")
+
+
+def test_agent_llm_status_failed_keeps_fallback(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setattr(BondAnalystAgent, "_create_openai_client", lambda self, api_key: _FailingClient())
+
+    result = BondAnalystAgent().answer("当前样本收益率分布是什么样？")
+
+    assert result["used_llm"] is False
+    assert result["llm_status"] == "failed"
+    assert result["llm_error"] == "OpenAI request failed: RuntimeError"
+    assert "Question:" in result["final_answer"]

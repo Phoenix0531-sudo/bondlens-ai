@@ -1,0 +1,107 @@
+- id: market_overview
+  question: 当前样本收益率分布是什么样？
+  expected_intent: market_overview
+  expected_tools:
+    - describe_market
+    - generate_bond_report
+  must_include:
+    - 样本
+    - 收益率
+
+- id: concrete_bond_search_report
+  question: 搜索23附息国债26并给出收益率分析
+  expected_intent: bond_report
+  expected_tools:
+    - search_bonds
+    - compare_bond_to_market
+    - describe_market
+    - rank_bonds
+    - detect_yield_outliers
+    - generate_bond_report
+  must_include:
+    - 23附息国债26
+    - 分位数
+
+- id: highest_yield_ranking
+  question: 按收益率列出最高的前5只债券
+  expected_intent: ranking
+  expected_tools:
+    - rank_bonds
+    - generate_bond_report
+  must_include:
+    - 排序
+    - 排名首位
+
+- id: volume_ranking
+  question: 按成交量列出最活跃的前5只债券
+  expected_intent: ranking
+  expected_tools:
+    - rank_bonds
+    - generate_bond_report
+  must_include:
+    - 排序
+    - 成交量
+
+- id: longest_maturity_ranking
+  question: 按期限列出最长的前5只债券
+  expected_intent: ranking
+  expected_tools:
+    - rank_bonds
+    - generate_bond_report
+  must_include:
+    - 排序
+    - 待偿期
+
+- id: low_yield_ranking
+  question: 按低收益排序列出前5只债券
+  expected_intent: ranking
+  expected_tools:
+    - rank_bonds
+    - generate_bond_report
+  must_include:
+    - 排序
+    - 收益率
+
+- id: yield_outlier_detection
+  question: 有没有收益率异常的债券？
+  expected_intent: outlier_detection
+  expected_tools:
+    - detect_yield_outliers
+    - generate_bond_report
+  must_include:
+    - 异常
+    - 收益率
+
+- id: yield_filter_above_three
+  question: 筛选收益率大于 3 的债券
+  expected_intent: bond_search
+  expected_tools:
+    - search_bonds
+    - generate_bond_report
+  must_include:
+    - 检索
+    - 收益率
+
+- id: empty_question_fallback
+  question: ""
+  expected_intent: market_overview
+  expected_tools:
+    - describe_market
+    - generate_bond_report
+  must_include:
+    - 样本
+    - 非投资建议
+
+- id: missing_bond
+  question: 搜索"不存在债券XYZ"并给出收益率分析
+  expected_intent: bond_report
+  expected_tools:
+    - search_bonds
+    - compare_bond_to_market
+    - describe_market
+    - rank_bonds
+    - detect_yield_outliers
+    - generate_bond_report
+  must_include:
+    - 未在
+    - data/testdata.xlsx
