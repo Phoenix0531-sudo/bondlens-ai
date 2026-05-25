@@ -10,11 +10,13 @@
 - [x] Add Web/API entry points for the agent without rewriting the legacy UI.
 - [ ] Add focused tests for data loading, tools, fallback agent output, and Flask smoke routes.
 - [x] Add Docker support, `.env.example`, and professional README documentation.
-- [ ] Verify local startup, tests, Docker build, and Docker-served app access.
+- [x] Verify local startup, tests, Docker build, and Docker-served app access.
 
 ## Review
 
 - `python -m pytest -q`: passed, 10 tests.
 - `python app.py` with `PORT=5055`: `/agent` returned HTTP 200.
 - `docker compose config`: passed.
-- `docker compose build`: blocked because Docker Desktop daemon is not running on this machine.
+- `docker compose build`: passed.
+- `docker compose up -d`: `/agent` returned HTTP 200.
+- Docker API smoke test: `/api/agent/query` returned HTTP 200 with local tool trace.
