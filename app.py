@@ -1,7 +1,7 @@
 import pandas as pd  # 导入pandas库，用于数据处理和分析
 import numpy as np  # 导入numpy库，用于数值计算
 from statsmodels.tsa.statespace.sarimax import SARIMAX  # 导入SARIMAX模型
-from flask import Flask, render_template, request, jsonify  # 导入Flask及其相关模块，用于创建Web应用
+from flask import abort, flash, Flask, jsonify, redirect, render_template, request, session  # 导入Flask及其相关模块，用于创建Web应用
 import plotly.graph_objects as go  # 导入plotly.graph_objects，用于创建图表
 from plotly.subplots import make_subplots  # 导入make_subplots，用于创建子图
 from datetime import datetime, timedelta  # 导入datetime和timedelta，用于日期和时间处理
@@ -14,12 +14,34 @@ from scipy.stats import zscore  # 导入zscore，用于计算Z-Score
 from sklearn.model_selection import train_test_split  # 导入train_test_split，用于数据集划分
 from sklearn.ensemble import RandomForestRegressor  # 导入RandomForestRegressor，用于随机森林回归模型
 from function import hash_code  # 导入自定义函数hash_code，用于密码哈希
-from flask_bootstrap import Bootstrap  # 导入Bootstrap，用于Flask中的前端样式
 import sqlite3  # 导入sqlite3模块，用于SQLite数据库操作
 import os  # 导入os模块，用于操作系统相关功能
 
 app = Flask(__name__)  # 创建Flask应用实例
-bootstrap = Bootstrap(app)  # 初始化Bootstrap
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-me')  # 设置会话密钥，生产环境应从环境变量读取
+DB_PATH = os.environ.get('DATABASE_PATH', 'db.db')
+
+
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute(
+        '''
+        CREATE TABLE IF NOT EXISTS USER (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            USERNAME TEXT NOT NULL UNIQUE,
+            PASSWORD TEXT NOT NULL,
+            college TEXT,
+            gender TEXT,
+            cet_score TEXT
+        )
+        '''
+    )
+    conn.commit()
+    conn.close()
+
+
+init_db()
 
 # 读取Excel数据
 def load_data():
@@ -63,7 +85,7 @@ def add_user():
             if password != confirm_password:
                 return jsonify({'code': '400', 'msg': '两次密码不匹配！'}), 400  # 如果密码不匹配，返回错误信息
             # 连接数据库
-            conn = sqlite3.connect('db.db')  # 连接SQLite数据库
+            conn = sqlite3.connect(DB_PATH)  # 连接SQLite数据库
             cur = conn.cursor()  # 创建游标
             # 查询输入的用户名是否已经存在
             sql_same_user = 'SELECT 1 FROM USER WHERE USERNAME=?'
@@ -91,7 +113,7 @@ def login():
         password = hash_code(request.form.get('password'))  # 获取并哈希密码
 
         # 连接数据库，判断用户名+密码组合是否匹配
-        conn = sqlite3.connect('db.db')  # 连接SQLite数据库
+        conn = sqlite3.connect(DB_PATH)  # 连接SQLite数据库
         cur = conn.cursor()  # 创建游标
         try:
             sql = 'SELECT college, gender, cet_score FROM USER WHERE USERNAME=? AND PASSWORD=?'
@@ -104,6 +126,8 @@ def login():
             conn.close()  # 关闭数据库连接
 
         if user_info is not None:
+            session['is_login'] = True
+            session['name'] = username
             return render_template('index.html')  # 如果查询结果不为空，渲染主页
         else:
             flash('用户名或密码错误！')  # 如果查询结果为空，显示错误信息
@@ -122,7 +146,7 @@ def register():
                 flash('两次输入的密码不一致！')  # 如果密码不匹配，显示错误信息
                 return render_template('register.html', username=username)  # 渲染注册页面，并保留输入的用户名
             # 连接数据库
-            conn = sqlite3.connect('db.db')  # 连接SQLite数据库
+            conn = sqlite3.connect(DB_PATH)  # 连接SQLite数据库
             cur = conn.cursor()  # 创建游标
             # 查询输入的用户名是否已经存在
             sql_same_user = 'SELECT 1 FROM USER WHERE USERNAME=?'
