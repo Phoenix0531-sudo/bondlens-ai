@@ -241,8 +241,8 @@
 - [x] Upgrade `/agent` from a simple form/report page into a dashboard-style analysis workbench.
 - [x] Add visual evidence blocks for metrics, yield distribution, ranking table, outlier table, data source detail, and LLM guardrail state.
 - [x] Add API validation for invalid `data_mode`.
-- [ ] Push and verify CI.
-- [ ] Try to enable GitHub Pages and `main` branch protection.
+- [x] Verify CI.
+- [x] Enable GitHub Pages and `main` branch protection.
 
 ## Success Criteria
 
@@ -261,3 +261,8 @@
 - Browser smoke on `http://localhost:5057/agent?data_mode=static`: form rendered, sample question submitted, Evidence Console, Yield Distribution, Top Ranked Bonds, and LLM Guardrail sections rendered.
 - `docker build -t bondlens-ai:ui-facade .`: passed.
 - Dependabot config was removed after it immediately created temporary update branches, because this repository should keep only `main` and `undergraduate-thesis-2024` as long-lived branches.
+- GitHub repository metadata updated: homepage, description, topics, disabled empty Wiki/Projects tabs.
+- GitHub Pages enabled from `main` `/docs`.
+- `main` branch protection enabled with required `Tests and agent evals` and `Docker build` checks.
+- Dependabot pull requests `#2`, `#3`, and `#4` closed; temporary Dependabot branches removed.
+- GitHub Actions CI run `26439466397`: passed on `main` for commit `d4d3a94`.
