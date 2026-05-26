@@ -145,3 +145,32 @@
 - `docker build -t bondlens-ai:live .`: passed.
 - `docker compose up -d --build`: `/agent` returned HTTP 200, `/api/agent/query` returned live AkShare data, healthcheck was healthy, and `docker compose down` removed the container.
 - GitHub Actions CI run `26430512616`: passed on `main` for commit `a20c7ae`.
+
+# Local LLM Compatibility Todo
+
+## Plan
+
+- [x] Add OpenAI-compatible local endpoint support with `OPENAI_BASE_URL`.
+- [x] Support both Responses API and Chat Completions so Ollama can run the LLM path.
+- [x] Keep deterministic fallback when no API key and no local base URL are configured.
+- [x] Add focused tests for local endpoint configuration and chat fallback.
+- [x] Verify against the local Ollama service on `127.0.0.1:11434`.
+- [x] Run lint, tests, evals, Docker build, and local smoke checks.
+- [ ] Push and verify CI.
+
+## Success Criteria
+
+- Setting `OPENAI_BASE_URL=http://127.0.0.1:11434/v1` and `OPENAI_MODEL=qwen2.5:1.5b` makes `llm_status=success`.
+- Without `OPENAI_API_KEY` or `OPENAI_BASE_URL`, behavior remains `llm_status=disabled`.
+- Tests do not require Ollama or internet access.
+
+## Review
+
+- Local Ollama was detected at `127.0.0.1:11434`; available models included `qwen2.5:1.5b` and `qwen3.5:9b`.
+- `OPENAI_BASE_URL=http://127.0.0.1:11434/v1`, `OPENAI_MODEL=qwen2.5:1.5b`, and `OPENAI_API_STYLE=chat` returned `used_llm=True`, `llm_status=success`.
+- Flask API smoke with local Ollama returned `used_llm=True`, `llm_status=success`, and included the disclaimer.
+- Small local models can still paraphrase numeric evidence poorly, so structured `data_evidence` remains the source of truth. A future quality pass should add LLM faithfulness checks or keep LLM output as a sidecar enhancement.
+- `python -m ruff check .`: passed.
+- `python -m pytest -q --basetemp .tmp/pytest-llm-<guid>`: passed, 30 tests.
+- `python evals/run_agent_evals.py`: passed, 10/10 cases.
+- `docker build -t bondlens-ai:local-llm .`: passed.

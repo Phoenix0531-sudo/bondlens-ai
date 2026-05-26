@@ -118,33 +118,79 @@ class BondAnalystAgent:
         }
 
     def _try_llm_answer(self, question: str, plan: dict, report: dict) -> dict:
-        api_key = os.environ.get("OPENAI_API_KEY")
+        base_url = os.environ.get("OPENAI_BASE_URL")
+        api_key = os.environ.get("OPENAI_API_KEY") or ("local-not-needed" if base_url else None)
         if not api_key:
             return {"text": None, "status": "disabled", "error": None}
 
         try:
-            client = self._create_openai_client(api_key)
+            client = self._create_openai_client(api_key, base_url=base_url)
             model = os.environ.get("OPENAI_MODEL", "gpt-5.4-mini")
-            response = client.responses.create(
-                model=model,
-                instructions=(
-                    "You are a fixed-income analysis assistant. Use only the provided JSON evidence. "
-                    "Do not invent market facts, ratings, issuer details, or investment advice. "
-                    f"Always include this disclaimer in Chinese: {DISCLAIMER}"
-                ),
-                input=json.dumps({"question": question, "plan": plan, "report": report}, ensure_ascii=False),
+            instructions = (
+                "You are a fixed-income analysis assistant. Use only the provided JSON evidence. "
+                "Copy numeric evidence exactly when citing it. Do not create new percentages, ranges, "
+                "ratings, issuer details, market facts, or investment advice. "
+                "The yield_distribution values are counts, not percentages. "
+                "If the evidence is insufficient, say so directly. "
+                f"Always include this disclaimer in Chinese: {DISCLAIMER}"
             )
-            text = getattr(response, "output_text", None)
+            evidence_json = json.dumps({"question": question, "plan": plan, "report": report}, ensure_ascii=False)
+            api_style = os.environ.get("OPENAI_API_STYLE", "auto").lower()
+            text = self._call_llm(client, model, instructions, evidence_json, api_style, prefer_chat=bool(base_url))
             if not text:
                 return {"text": None, "status": "failed", "error": "OpenAI request failed: empty_output"}
-            return {"text": text.strip(), "status": "success", "error": None}
+            return {"text": self._ensure_disclaimer(text.strip()), "status": "success", "error": None}
         except Exception as exc:
             return {"text": None, "status": "failed", "error": f"OpenAI request failed: {type(exc).__name__}"}
 
-    def _create_openai_client(self, api_key: str):
+    def _create_openai_client(self, api_key: str, base_url: str | None = None):
         from openai import OpenAI
 
-        return OpenAI(api_key=api_key)
+        kwargs = {"api_key": api_key}
+        if base_url:
+            kwargs["base_url"] = base_url
+        return OpenAI(**kwargs)
+
+    def _call_llm(self, client, model: str, instructions: str, evidence_json: str, api_style: str, prefer_chat: bool = False) -> str | None:
+        if api_style not in {"auto", "responses", "chat"}:
+            raise ValueError("OPENAI_API_STYLE must be one of: auto, responses, chat")
+
+        if api_style == "chat" or (api_style == "auto" and prefer_chat):
+            return self._call_chat_completions(client, model, instructions, evidence_json)
+
+        try:
+            return self._call_responses_api(client, model, instructions, evidence_json)
+        except Exception:
+            if api_style == "responses":
+                raise
+            return self._call_chat_completions(client, model, instructions, evidence_json)
+
+    def _call_responses_api(self, client, model: str, instructions: str, evidence_json: str) -> str | None:
+        response = client.responses.create(
+            model=model,
+            instructions=instructions,
+            input=evidence_json,
+        )
+        return getattr(response, "output_text", None)
+
+    def _call_chat_completions(self, client, model: str, instructions: str, evidence_json: str) -> str | None:
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": instructions},
+                {"role": "user", "content": evidence_json},
+            ],
+        )
+        choices = getattr(response, "choices", None) or []
+        if not choices:
+            return None
+        message = getattr(choices[0], "message", None)
+        return getattr(message, "content", None)
+
+    def _ensure_disclaimer(self, text: str) -> str:
+        if DISCLAIMER in text:
+            return text
+        return f"{text}\n\n{DISCLAIMER}"
 
     def _format_report(self, report: dict, plan: dict) -> str:
         evidence = report["data_evidence"]

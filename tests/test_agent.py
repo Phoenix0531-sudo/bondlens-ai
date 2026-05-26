@@ -83,9 +83,34 @@ class _FailingClient:
     responses = _FailingResponses()
 
 
+class _FakeChatMessage:
+    content = "Local LLM chat answer。"
+
+
+class _FakeChatChoice:
+    message = _FakeChatMessage()
+
+
+class _FakeChatCompletion:
+    choices = [_FakeChatChoice()]
+
+
+class _FakeChatCompletions:
+    def create(self, **kwargs):
+        return _FakeChatCompletion()
+
+
+class _FakeChat:
+    completions = _FakeChatCompletions()
+
+
+class _FakeLocalClient:
+    chat = _FakeChat()
+
+
 def test_agent_llm_status_success(monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
-    monkeypatch.setattr(BondAnalystAgent, "_create_openai_client", lambda self, api_key: _FakeClient())
+    monkeypatch.setattr(BondAnalystAgent, "_create_openai_client", lambda self, api_key, **kwargs: _FakeClient())
 
     result = BondAnalystAgent(data_mode="static").answer("当前样本收益率分布是什么样？")
 
@@ -97,7 +122,8 @@ def test_agent_llm_status_success(monkeypatch):
 
 def test_agent_llm_status_failed_keeps_fallback(monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
-    monkeypatch.setattr(BondAnalystAgent, "_create_openai_client", lambda self, api_key: _FailingClient())
+    monkeypatch.setenv("OPENAI_API_STYLE", "responses")
+    monkeypatch.setattr(BondAnalystAgent, "_create_openai_client", lambda self, api_key, **kwargs: _FailingClient())
 
     result = BondAnalystAgent(data_mode="static").answer("当前样本收益率分布是什么样？")
 
@@ -105,6 +131,30 @@ def test_agent_llm_status_failed_keeps_fallback(monkeypatch):
     assert result["llm_status"] == "failed"
     assert result["llm_error"] == "OpenAI request failed: RuntimeError"
     assert "Question:" in result["final_answer"]
+
+
+def test_agent_local_openai_compatible_base_url_uses_chat_without_api_key(monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setenv("OPENAI_BASE_URL", "http://127.0.0.1:11434/v1")
+    monkeypatch.setenv("OPENAI_MODEL", "qwen2.5:1.5b")
+
+    seen = {}
+
+    def fake_create_client(self, api_key, **kwargs):
+        seen["api_key"] = api_key
+        seen["base_url"] = kwargs.get("base_url")
+        return _FakeLocalClient()
+
+    monkeypatch.setattr(BondAnalystAgent, "_create_openai_client", fake_create_client)
+
+    result = BondAnalystAgent(data_mode="static").answer("当前样本收益率分布是什么样？")
+
+    assert seen["api_key"] == "local-not-needed"
+    assert seen["base_url"] == "http://127.0.0.1:11434/v1"
+    assert result["used_llm"] is True
+    assert result["llm_status"] == "success"
+    assert result["final_answer"].startswith("Local LLM chat answer")
+    assert "非投资建议，仅用于学习和研究" in result["final_answer"]
 
 
 def test_agent_can_use_live_bond_feed_without_openai(monkeypatch):

@@ -40,7 +40,7 @@ BondLens AI does not ask an LLM to guess financial answers. The agent follows a 
 3. **Tools** run local Python analysis over the active data frame.
 4. **Evidence** is attached to the response as structured JSON.
 5. **Report** is generated from the evidence, with risks and limitations.
-6. **Optional LLM** can polish the answer only after the local evidence exists.
+6. **Optional LLM** can polish the answer only after the local evidence exists. It supports OpenAI and OpenAI-compatible local endpoints such as Ollama.
 
 If `OPENAI_API_KEY` is not set, the project still runs and uses deterministic fallback output.
 
@@ -81,7 +81,7 @@ flowchart TD
     J --> K[generate_bond_report]
     K --> L[Risk explanation retrieval]
     L --> M[Evidence quality assessment]
-    M --> N{OPENAI_API_KEY}
+    M --> N{OPENAI_API_KEY or OPENAI_BASE_URL}
     N -->|missing| O[Deterministic fallback]
     N -->|set| P[OpenAI evidence-constrained enhancement]
 ```
@@ -180,7 +180,29 @@ BOND_DATA_MODE=auto
 - `SECRET_KEY`: Flask session secret.
 - `OPENAI_API_KEY`: optional. If empty, deterministic fallback is used.
 - `OPENAI_MODEL`: configurable model for evidence-constrained answer enhancement.
+- `OPENAI_BASE_URL`: optional OpenAI-compatible endpoint. For local Ollama, use `http://127.0.0.1:11434/v1`.
+- `OPENAI_API_STYLE`: `auto`, `responses`, or `chat`. Keep `auto` for normal use; local endpoints usually use chat completions.
 - `BOND_DATA_MODE`: `auto`, `live`, or `static`. `auto` tries AkShare first and uses the local Excel fallback if live data fails.
+
+Local Ollama smoke example:
+
+```bash
+set OPENAI_BASE_URL=http://127.0.0.1:11434/v1
+set OPENAI_MODEL=qwen2.5:1.5b
+set OPENAI_API_STYLE=chat
+python app.py
+```
+
+`OPENAI_API_KEY` can stay empty for local OpenAI-compatible endpoints that do not require authentication.
+
+Small local models are useful for verifying that the LLM path runs end to end, but the deterministic evidence fields remain the source of truth for review and debugging.
+
+When using Docker on Windows or macOS, point the container to the host Ollama service:
+
+```bash
+set OPENAI_BASE_URL=http://host.docker.internal:11434/v1
+docker compose up --build
+```
 
 The API response exposes safe LLM state:
 
@@ -345,7 +367,8 @@ The `main` branch removes legacy login/database code, obsolete crawler code, old
 - **Tool calling design:** deterministic planner maps user intent to local Python tools.
 - **Live-first source design:** AkShare live data is the default, with a transparent static fallback for reliability.
 - **Evidence constraint:** final answers are generated from `data_evidence`, not free-form finance guessing.
-- **Fallback design:** no API key required; OpenAI path is optional and observable.
+- **Local LLM compatibility:** OpenAI-compatible endpoints can exercise the LLM path without a paid API key.
+- **Fallback design:** no API key required; OpenAI/local LLM path is optional and observable.
 - **Risk boundary:** output always includes limitations and non-investment-advice language.
 - **Eval method:** local eval cases test intent, tool selection, and answer constraints.
 - **Dockerization:** gunicorn runtime, healthcheck, and reproducible dependency install.
