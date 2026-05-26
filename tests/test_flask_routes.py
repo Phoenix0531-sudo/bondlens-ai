@@ -20,6 +20,9 @@ def test_agent_api_smoke():
     assert payload["plan"]["intent"] == "ranking"
     assert "rank_bonds" in payload["tools_used"]
     assert "llm_status" in payload
+    assert payload["data_source"]["runtime_mode"] == "static_sample"
+    assert payload["risk_explanations"]
+    assert payload["evidence_quality"]["decision_confidence"] == "low"
     assert payload["used_llm"] is False
 
 

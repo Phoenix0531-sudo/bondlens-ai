@@ -59,3 +59,31 @@
 - `docker compose build`: passed.
 - `docker compose up -d`: `/agent` and `/api/agent/query` returned HTTP 200; container reported healthy.
 - `docker compose down`: completed.
+
+# Data Source, Risk RAG, Evidence Quality Todo
+
+## Plan
+
+- [x] Confirm current Agent data source and legacy crawler status.
+- [x] Add explicit data source metadata to Agent/API responses.
+- [x] Add local retrieval-augmented risk explanation layer for fixed-income concepts.
+- [x] Add evidence quality and confidence assessment for every answer.
+- [x] Surface data source, risk explanations, and evidence quality on `/agent`.
+- [x] Update English and Chinese README documentation.
+- [x] Add focused tests and run pytest, evals, Docker build, and CI push check.
+
+## Success Criteria
+
+- Agent responses include `data_source`, `risk_explanations`, and `evidence_quality`.
+- README states that `data/testdata.xlsx` is a static repository sample and `data/Crawler.py` is historical only.
+- The app does not depend on the old crawler or live CNSTOCK access.
+- Tests and evals remain deterministic without OpenAI.
+
+## Review
+
+- `data/testdata.xlsx`: 3,366 raw rows, 3,365 named bond rows, 3,363 valid yield records.
+- Legacy CNSTOCK crawler URLs returned HTTP 403 to automated requests during verification on 2026-05-26.
+- `python -m pytest -q`: passed, 25 tests.
+- `python evals/run_agent_evals.py`: passed, 10/10 cases.
+- `docker build -t bondlens-ai:ci .`: passed.
+- `python app.py` smoke: `/agent` returned HTTP 200; `/api/agent/query` returned data source, risk explanations, and evidence quality.

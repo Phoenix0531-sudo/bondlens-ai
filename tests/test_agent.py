@@ -10,10 +10,17 @@ def test_agent_fallback_uses_local_tools_without_openai_key(monkeypatch):
     assert result["llm_status"] == "disabled"
     assert result["llm_error"] is None
     assert result["plan"]["intent"] == "bond_report"
+    assert result["data_source"]["source_id"] == "local_static_excel"
+    assert result["data_source"]["active_crawler"] is False
+    assert result["risk_explanations"]
+    assert result["evidence_quality"]["level"] in {"medium", "high"}
+    assert result["evidence_quality"]["decision_confidence"] == "low"
     assert "search_bonds" in result["tools_used"]
     assert "compare_bond_to_market" in result["tools_used"]
     assert "generate_bond_report" in result["tools_used"]
     assert "23附息国债26" in result["final_answer"]
+    assert "Risk Explanation Layer" in result["final_answer"]
+    assert "Evidence Quality" in result["final_answer"]
     assert "非投资建议，仅用于学习和研究" in result["final_answer"]
     assert result["tool_trace"][-1] == "-> final answer"
 
@@ -39,6 +46,17 @@ def test_agent_search_only_answer_shows_search_evidence(monkeypatch):
     assert result["tools_used"] == ["search_bonds", "generate_bond_report"]
     assert "检索命中数量" in result["final_answer"]
     assert "检索条件" in result["final_answer"]
+
+
+def test_agent_exposes_confidence_and_risk_retrieval(monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
+    result = BondAnalystAgent().answer("有没有收益率异常的债券？")
+
+    assert result["evidence_quality"]["coverage"]["has_risk_explanations"] is True
+    assert result["evidence_quality"]["data_freshness"] == "static_snapshot"
+    assert any(item["id"] == "outlier_risk" for item in result["risk_explanations"])
+    assert "Issuer ratings" in result["evidence_quality"]["penalties"][-1]
 
 
 class _FakeResponse:

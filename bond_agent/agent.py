@@ -3,7 +3,10 @@ from __future__ import annotations
 import json
 import os
 
+from .data_loader import describe_data_source
+from .evidence_quality import assess_evidence_quality
 from .planner import classify_intent
+from .risk_knowledge import retrieve_risk_explanations
 from .tools import (
     compare_bond_to_market,
     describe_market,
@@ -70,6 +73,13 @@ class BondAnalystAgent:
             report = generate_bond_report(question, tool_outputs, plan=plan)
             tool_trace.append("-> generate_bond_report()")
 
+        data_source = describe_data_source(self.data_path) if self.data_path else describe_data_source()
+        risk_explanations = retrieve_risk_explanations(question, report)
+        evidence_quality = assess_evidence_quality(plan, report, data_source, risk_explanations)
+        report["data_source"] = data_source
+        report["risk_explanations"] = risk_explanations
+        report["evidence_quality"] = evidence_quality
+
         tool_trace.append("-> final answer")
 
         fallback_answer = self._format_report(report, plan)
@@ -84,6 +94,9 @@ class BondAnalystAgent:
             "tools_used": report["tools_used"],
             "tool_trace": tool_trace,
             "data_evidence": report["data_evidence"],
+            "data_source": data_source,
+            "risk_explanations": risk_explanations,
+            "evidence_quality": evidence_quality,
             "analysis": report["analysis"],
             "risk_notes": report["risk_notes"],
             "limitations": report["limitations"],
@@ -140,6 +153,13 @@ class BondAnalystAgent:
             "Data Evidence:",
         ]
 
+        data_source = report.get("data_source") or {}
+        evidence_quality = report.get("evidence_quality") or {}
+        risk_explanations = report.get("risk_explanations") or []
+        if data_source:
+            lines.append(f"- 数据源: {data_source.get('source_name')} ({data_source.get('runtime_mode')})")
+            lines.append(f"- 样本行数: {data_source.get('row_count')}，有效收益率记录: {data_source.get('valid_yield_count')}")
+
         if market:
             lines.append(f"- 样本数量: {market.get('sample_count', 0)}")
             lines.append(f"- 收益率摘要: {market.get('yield_summary', {})}")
@@ -161,6 +181,24 @@ class BondAnalystAgent:
                 f"- 债券相对市场: yield_percentile={comparison.get('yield_percentile')}, "
                 f"volume_percentile={comparison.get('volume_percentile')}, "
                 f"is_yield_outlier={comparison.get('is_yield_outlier')}"
+            )
+
+        if risk_explanations:
+            lines.extend(["", "Risk Explanation Layer:"])
+            for item in risk_explanations:
+                lines.append(f"- {item.get('title')}: {item.get('summary')}")
+
+        if evidence_quality:
+            lines.extend(
+                [
+                    "",
+                    "Evidence Quality:",
+                    f"- Score: {evidence_quality.get('score')}/100",
+                    f"- Level: {evidence_quality.get('level')}",
+                    f"- Data Freshness: {evidence_quality.get('data_freshness')}",
+                    f"- Decision Confidence: {evidence_quality.get('decision_confidence')}",
+                    f"- Summary: {evidence_quality.get('summary')}",
+                ]
             )
 
         lines.extend(

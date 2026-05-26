@@ -52,6 +52,9 @@ If `OPENAI_API_KEY` is not set, the project still runs and uses deterministic fa
 - Ranking by yield, volume, maturity, or price
 - Yield outlier detection with z-score
 - Bond-to-market comparison: yield percentile, volume percentile, maturity percentile, outlier status
+- Data source profile: explicit static-sample metadata and legacy crawler boundary
+- Retrieval-augmented risk explanations for fixed-income concepts
+- Evidence quality scoring with confidence and freshness labels
 - Agent eval suite for repeatable behavior checks
 - Docker deployment with gunicorn
 
@@ -72,9 +75,11 @@ flowchart TD
     G --> I
     H --> I
     I --> J[generate_bond_report]
-    J --> K{OPENAI_API_KEY}
-    K -->|missing| L[Deterministic fallback]
-    K -->|set| M[OpenAI evidence-constrained enhancement]
+    J --> K[Risk explanation retrieval]
+    K --> L[Evidence quality assessment]
+    L --> M{OPENAI_API_KEY}
+    M -->|missing| N[Deterministic fallback]
+    M -->|set| O[OpenAI evidence-constrained enhancement]
 ```
 
 ## Tool Trace Example
@@ -112,6 +117,8 @@ User question: 搜索23附息国债26并给出收益率分析
 │   ├── agent.py                 # Agent orchestration and LLM fallback status
 │   ├── planner.py               # Rule-based intent planner
 │   ├── data_loader.py           # Excel loading and maturity normalization
+│   ├── risk_knowledge.py        # Local fixed-income risk explanation retrieval
+│   ├── evidence_quality.py      # Evidence scoring, freshness, and confidence labels
 │   └── tools.py                 # Local bond analysis tools
 ├── data/testdata.xlsx           # Static bond sample data
 ├── evals/
@@ -208,8 +215,48 @@ Key response fields:
 - `tools_used`: tools actually used for the answer
 - `tool_trace`: human-readable step trace
 - `data_evidence`: raw market/search/ranking/outlier/comparison evidence
+- `data_source`: static Excel sample profile and legacy crawler boundary
+- `risk_explanations`: retrieved fixed-income risk explanations
+- `evidence_quality`: score, confidence labels, coverage, freshness, and penalties
 - `final_answer`: report text
 - `llm_status`: `disabled`, `success`, or `failed`
+
+## Data Source Boundary
+
+The current Agent path uses a single local static dataset:
+
+```text
+data/testdata.xlsx
+```
+
+The workbook contains more than 3,000 bond sample rows with fields such as bond name, maturity, clean price, closing yield, weighted yield, and trading volume. This is the only data source used by `bond_agent/`.
+
+The legacy file `data/Crawler.py` is preserved as thesis-era historical code only. It targets old CNSTOCK news pages, depends on MongoDB and thesis-era text-analysis modules, and is not imported by the current Agent runtime. During repository verification on May 26, 2026, the old CNSTOCK HTTP endpoints returned `403 Forbidden` to automated requests, so this project does not present them as an active or reliable live data source.
+
+## Risk Explanation Layer
+
+BondLens AI includes a local retrieval-augmented explanation layer for fixed-income risk concepts. After the Python tools produce evidence, the Agent retrieves relevant snippets from a curated local knowledge base covering:
+
+- yield interpretation
+- liquidity risk
+- maturity and duration sensitivity
+- yield outlier review
+- credit-context limitations
+- static-data boundaries
+
+This keeps explanations grounded and repeatable without requiring an external vector database or live LLM call.
+
+## Evidence Quality
+
+Every Agent answer includes an `evidence_quality` object with:
+
+- `score`: 0-100 evidence quality score for the current answer
+- `level`: low, medium, or high for static-sample analysis
+- `analysis_confidence`: confidence in the descriptive analysis
+- `decision_confidence`: intentionally low because no live market, issuer rating, credit event, or macro curve feed is attached
+- `data_freshness`: currently `static_snapshot`
+- `coverage`: which evidence blocks were available
+- `penalties`: missing context that limits conclusions
 
 ## Agent Eval
 
@@ -238,6 +285,9 @@ Coverage includes:
 
 - planner intent classification
 - intent-aware tool routing
+- data source metadata
+- risk explanation retrieval
+- evidence quality assessment
 - market statistics
 - ranking tools
 - yield outlier detection
@@ -255,7 +305,7 @@ All financial conclusions are computed from project data:
 data/testdata.xlsx
 ```
 
-The agent does not invent issuer ratings, credit events, macro views, or investment recommendations. Old crawler files remain historical context, but the current Agent path uses local static data only.
+The agent does not invent issuer ratings, credit events, macro views, or investment recommendations. Old crawler files remain historical context only; the current Agent path uses local static data only.
 
 ## Modern Project Cleanup
 
@@ -279,7 +329,7 @@ The `main` branch removes obvious IDE metadata and unreferenced legacy static du
 
 - Add GitHub Actions CI
 - Add real-time AkShare data with explicit static-vs-live source labels
-- Add RAG for bond terminology and fixed-income risk concepts
+- Expand RAG from local snippets to document-backed retrieval
 - Add PDF/Markdown report export
 - Add richer agent evals for evidence consistency
 - Add duration, convexity, credit spread, and liquidity buckets

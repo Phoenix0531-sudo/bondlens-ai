@@ -1,0 +1,78 @@
+from __future__ import annotations
+
+
+def assess_evidence_quality(plan: dict, report: dict, data_source: dict, risk_explanations: list[dict]) -> dict:
+    evidence = report.get("data_evidence", {})
+    tools_used = report.get("tools_used", [])
+    checks = []
+    score = 0
+
+    if data_source.get("row_count", 0) > 0:
+        score += 25
+        checks.append("Local Excel sample loaded successfully.")
+    else:
+        checks.append("No usable local rows were loaded.")
+
+    if tools_used:
+        score += min(20, len(tools_used) * 4)
+        checks.append(f"{len(tools_used)} tool steps produced structured evidence.")
+
+    if report.get("analysis"):
+        score += 15
+        checks.append("Final analysis was generated from tool outputs.")
+
+    intent = plan.get("intent")
+    search = evidence.get("search") or {}
+    comparison = evidence.get("comparison") or {}
+    market = evidence.get("market") or {}
+
+    if intent in {"bond_report", "bond_search"}:
+        if search.get("match_count", 0) > 0:
+            score += 15
+            checks.append("Search criteria matched local bond records.")
+        else:
+            checks.append("Search criteria did not match local bond records.")
+    elif market.get("sample_count", 0) > 0:
+        score += 15
+        checks.append("Market-level summary covers the loaded sample.")
+
+    if comparison.get("found"):
+        score += 10
+        checks.append("Matched bond was compared against market percentiles.")
+
+    if risk_explanations:
+        score += 10
+        checks.append("Risk explanation snippets were retrieved from the local knowledge base.")
+
+    penalties = []
+    if data_source.get("runtime_mode") == "static_sample":
+        score -= 10
+        penalties.append("Static sample limits data freshness.")
+    if not data_source.get("active_crawler"):
+        penalties.append("No live crawler or market feed is active in the Agent path.")
+    penalties.append("Issuer ratings, credit events, and macro curves are not attached.")
+
+    score = max(0, min(100, score))
+    level = "high" if score >= 80 else "medium" if score >= 55 else "low"
+
+    return {
+        "score": score,
+        "level": level,
+        "analysis_confidence": level,
+        "decision_confidence": "low",
+        "data_freshness": "static_snapshot",
+        "coverage": {
+            "intent": intent,
+            "tools_used_count": len(tools_used),
+            "has_market_summary": bool(market),
+            "has_search_results": bool(search),
+            "has_bond_comparison": bool(comparison.get("found")),
+            "has_risk_explanations": bool(risk_explanations),
+        },
+        "checks": checks,
+        "penalties": penalties,
+        "summary": (
+            f"Evidence quality is {level} for static-sample analysis, but decision confidence remains low "
+            "because live market data, issuer credit context, and macro curve data are not attached."
+        ),
+    }
