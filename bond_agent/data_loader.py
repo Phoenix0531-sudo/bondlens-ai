@@ -81,15 +81,15 @@ def describe_data_source(path: str | Path = DEFAULT_DATA_PATH) -> dict:
         "columns": [BOND_NAME, MATURITY, PRICE, YIELD, WEIGHTED_YIELD, VOLUME],
         "active_crawler": False,
         "legacy_crawler": {
-            "path": "data/Crawler.py",
-            "status": "historical_only",
+            "path": "legacy-thesis-2024:data/Crawler.py",
+            "status": "preserved_in_legacy_branch",
             "targets": [
                 "http://company.cnstock.com/company/scp_gsxw/",
                 "http://ggjd.cnstock.com/gglist/search/qmtbbdj/",
                 "http://ggjd.cnstock.com/gglist/search/ggkx/",
             ],
             "notes": [
-                "The current Agent runtime does not import or call this crawler.",
+                "The current main branch does not include, import, or call this crawler.",
                 "The legacy crawler depends on MongoDB and thesis-era text analysis modules.",
                 "Legacy CNSTOCK endpoints are not treated as a reliable live data source.",
             ],

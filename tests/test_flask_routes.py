@@ -1,11 +1,10 @@
 from app import app
 
 
-def test_legacy_pages_smoke():
+def test_agent_pages_smoke():
     client = app.test_client()
 
-    assert client.get("/").status_code == 200
-    assert client.get("/query").status_code == 200
+    assert client.get("/").status_code == 302
     assert client.get("/agent").status_code == 200
 
 

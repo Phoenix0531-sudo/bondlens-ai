@@ -101,8 +101,6 @@ User question: 搜索23附息国债26并给出收益率分析
 - Python 3.11
 - Flask
 - Pandas / NumPy
-- SciPy / Statsmodels / scikit-learn
-- Plotly
 - OpenPyXL
 - OpenAI Python SDK, optional
 - Pytest + local agent evals
@@ -231,7 +229,7 @@ data/testdata.xlsx
 
 The workbook contains more than 3,000 bond sample rows with fields such as bond name, maturity, clean price, closing yield, weighted yield, and trading volume. This is the only data source used by `bond_agent/`.
 
-The legacy file `data/Crawler.py` is preserved as thesis-era historical code only. It targets old CNSTOCK news pages, depends on MongoDB and thesis-era text-analysis modules, and is not imported by the current Agent runtime. During repository verification on May 26, 2026, the old CNSTOCK HTTP endpoints returned `403 Forbidden` to automated requests, so this project does not present them as an active or reliable live data source.
+The legacy crawler is preserved in `legacy-thesis-2024` as thesis-era historical code only. It targeted old CNSTOCK news pages, depended on MongoDB and thesis-era text-analysis modules, and is not present in the current `main` runtime. During repository verification on May 26, 2026, the old CNSTOCK HTTP endpoints returned `403 Forbidden` to automated requests, so this project does not present them as an active or reliable live data source.
 
 ## Risk Explanation Layer
 
@@ -305,15 +303,15 @@ All financial conclusions are computed from project data:
 data/testdata.xlsx
 ```
 
-The agent does not invent issuer ratings, credit events, macro views, or investment recommendations. Old crawler files remain historical context only; the current Agent path uses local static data only.
+The agent does not invent issuer ratings, credit events, macro views, or investment recommendations. Legacy crawler code is preserved only in the thesis branch; the current Agent path uses local static data only.
 
 ## Modern Project Cleanup
 
-The `main` branch removes obvious IDE metadata and unreferenced legacy static dumps such as offline Angular docs and scraped `static/subject` pages. This is safe because:
+The `main` branch removes legacy login/database code, obsolete crawler code, old thesis UI pages, IDE metadata, and unreferenced static dumps. This is safe because:
 
 - `legacy-thesis-2024` and `thesis-submission-2024-04-24` preserve the original repository state.
-- Current Flask templates and static files do not reference the removed paths.
-- Core data, templates, screenshots, CSS, JS, and images are retained.
+- Current Flask routes only serve BondLens AI and its API.
+- Core bond sample data, Agent code, tests, Docker, and README documentation are retained.
 
 ## Interview Talking Points
 
@@ -327,7 +325,6 @@ The `main` branch removes obvious IDE metadata and unreferenced legacy static du
 
 ## Roadmap
 
-- Add GitHub Actions CI
 - Add real-time AkShare data with explicit static-vs-live source labels
 - Expand RAG from local snippets to document-backed retrieval
 - Add PDF/Markdown report export

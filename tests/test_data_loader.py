@@ -25,4 +25,4 @@ def test_describe_data_source_marks_static_excel_and_legacy_crawler():
     assert profile["runtime_mode"] == "static_sample"
     assert profile["row_count"] > 3000
     assert profile["active_crawler"] is False
-    assert profile["legacy_crawler"]["status"] == "historical_only"
+    assert profile["legacy_crawler"]["status"] == "preserved_in_legacy_branch"

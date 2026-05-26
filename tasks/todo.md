@@ -75,7 +75,7 @@
 ## Success Criteria
 
 - Agent responses include `data_source`, `risk_explanations`, and `evidence_quality`.
-- README states that `data/testdata.xlsx` is a static repository sample and `data/Crawler.py` is historical only.
+- README states that `data/testdata.xlsx` is the active static repository sample and the old crawler is preserved only in the legacy branch/tag.
 - The app does not depend on the old crawler or live CNSTOCK access.
 - Tests and evals remain deterministic without OpenAI.
 
@@ -87,3 +87,31 @@
 - `python evals/run_agent_evals.py`: passed, 10/10 cases.
 - `docker build -t bondlens-ai:ci .`: passed.
 - `python app.py` smoke: `/agent` returned HTTP 200; `/api/agent/query` returned data source, risk explanations, and evidence quality.
+
+# Portfolio Cleanup Todo
+
+## Plan
+
+- [x] Remove committed SQLite runtime database from `main`.
+- [x] Remove legacy crawler code from `main`; keep it available through the preserved thesis branch/tag.
+- [x] Remove legacy login, KDJ, report, comment, query, and visualization routes from the active Flask app.
+- [x] Remove obsolete templates, static assets, README images, diagram scratch file, and language override files.
+- [x] Slim runtime dependencies to the BondLens AI path.
+- [x] Run lint, tests, agent evals, Docker build, and smoke checks.
+- [x] Add ruff linting to GitHub Actions CI.
+- [ ] Push cleanup and verify GitHub Actions.
+
+## Success Criteria
+
+- `main` presents BondLens AI as the only active app surface.
+- No committed runtime database or stale user records remain in `main`.
+- The current Agent still reads `data/testdata.xlsx`.
+- The legacy thesis version remains available from `legacy-thesis-2024` and `thesis-submission-2024-04-24`.
+
+## Review
+
+- `python -m ruff check .`: passed.
+- `python -m pytest -q`: passed, 25 tests.
+- `python evals/run_agent_evals.py`: passed, 10/10 cases.
+- `docker build --no-cache -t bondlens-ai:cleanup .`: passed.
+- `python app.py` smoke: `/agent` returned HTTP 200, `/` returned HTTP 302 to `/agent`, `/api/agent/query` returned local static-sample analysis with `used_llm=false`.
