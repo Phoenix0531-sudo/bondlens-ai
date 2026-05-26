@@ -1,0 +1,23 @@
+from bond_agent import BondAnalystAgent
+from bond_agent.schemas import AgentResponse, api_schema_bundle
+
+
+def test_agent_response_validates_against_schema(monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
+
+    result = BondAnalystAgent(data_mode="static").answer("当前样本收益率分布是什么样？")
+    validated = AgentResponse.model_validate(result)
+
+    assert validated.agent == "BondLens AI"
+    assert validated.final_answer_source == "deterministic_fallback"
+    assert validated.llm_guardrail.status == "not_run"
+
+
+def test_api_schema_bundle_exposes_response_contract():
+    schema = api_schema_bundle()
+
+    assert "agent_response" in schema
+    assert "data_source" in schema["agent_response"]["properties"]
+    assert "evidence_quality" in schema["agent_response"]["properties"]
+    assert "llm_guardrail" in schema["agent_response"]["properties"]

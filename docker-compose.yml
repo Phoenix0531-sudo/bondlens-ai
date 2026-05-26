@@ -16,7 +16,7 @@ services:
       FLASK_RUN_HOST: 0.0.0.0
       PORT: 5000
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/agent', timeout=5).read()"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/healthz', timeout=5).read()"]
       interval: 30s
       timeout: 10s
       retries: 3

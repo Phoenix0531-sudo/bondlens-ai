@@ -43,6 +43,7 @@ BondLens AI does not ask an LLM to guess financial answers. The agent follows a 
 5. **Report** is generated from the evidence, with risks and limitations.
 6. **Optional LLM** can polish the answer only after the local evidence exists. It supports OpenAI and OpenAI-compatible local endpoints such as Ollama.
 7. **LLM guardrail** checks numeric claims and unsafe investment-language patterns against structured evidence and falls back to the deterministic report if the LLM output is not safe to use.
+8. **Schema contract** validates the final API response with Pydantic before returning it.
 
 If `OPENAI_API_KEY` is not set, the project still runs and uses deterministic fallback output.
 
@@ -62,6 +63,8 @@ If `OPENAI_API_KEY` is not set, the project still runs and uses deterministic fa
 - Retrieval-augmented risk explanations for fixed-income concepts
 - Evidence quality scoring with confidence and freshness labels
 - LLM faithfulness guardrail for numeric evidence checks, unsafe investment-language checks, and safe fallback
+- Pydantic response schema with `/api/agent/schema`
+- Lightweight `/healthz` endpoint for containers and deployment platforms
 - Agent eval and red-team eval suites for repeatable behavior and safety checks
 - Docker deployment with gunicorn
 
@@ -132,9 +135,11 @@ User question: 搜索23附息国债26并给出收益率分析
 │   ├── risk_knowledge.py        # Local fixed-income risk explanation retrieval
 │   ├── evidence_quality.py      # Evidence scoring, freshness, and confidence labels
 │   ├── llm_guardrail.py         # Numeric and risk-language checks for LLM answers
+│   ├── schemas.py               # Pydantic API request/response contracts
 │   └── tools.py                 # Local bond analysis tools
 ├── data/testdata.xlsx           # Static bond sample data
 ├── docs/index.html              # GitHub Pages project page
+├── docs/deployment.md           # Docker, health check, and platform deployment notes
 ├── evals/
 │   ├── agent_eval_cases.yml     # Behavior cases
 │   ├── red_team_eval_cases.yml  # Safety boundary cases
@@ -168,7 +173,7 @@ The container runs gunicorn:
 gunicorn -b 0.0.0.0:5000 app:app
 ```
 
-The Compose service is named `bondlens-ai` and includes a healthcheck for `/agent`.
+The Compose service is named `bondlens-ai` and uses `/healthz` for lightweight platform and container health checks.
 
 ## Local Development
 
@@ -281,6 +286,17 @@ Key response fields:
 - `llm_guardrail`: numeric faithfulness status, unsafe risk-language status, score, unsupported numeric claims, and blocked phrases
 - `llm_status`: `disabled`, `success`, or `failed`
 
+Additional operational endpoints:
+
+```text
+GET /healthz
+GET /api/agent/schema
+```
+
+`/api/agent/schema` returns the Pydantic JSON schemas for the request, response, health check, and error payloads.
+
+Deployment notes are available in [docs/deployment.md](docs/deployment.md).
+
 ## Data Source Boundary
 
 The current Agent path uses a live-first data strategy:
@@ -382,6 +398,8 @@ Coverage includes:
 - concrete bond report behavior
 - LLM disabled/success/failed status with mocks
 - LLM numeric and unsafe risk-language guardrails
+- Pydantic Agent response schema
+- health check and schema endpoints
 - live snapshot cache fallback
 - Flask page/API smoke tests
 - eval case loading

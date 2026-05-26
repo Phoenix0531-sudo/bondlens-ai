@@ -8,6 +8,7 @@ from .evidence_quality import assess_evidence_quality
 from .llm_guardrail import assess_llm_faithfulness
 from .planner import classify_intent
 from .risk_knowledge import retrieve_risk_explanations
+from .schemas import AgentResponse
 from .tools import (
     compare_bond_to_market,
     describe_market,
@@ -105,7 +106,7 @@ class BondAnalystAgent:
         final_answer = llm_result["text"] if use_llm_final else fallback_answer
         tool_trace.append("-> final answer")
 
-        return {
+        response = {
             "agent": self.name,
             "subtitle": "Explainable Bond Analysis Agent",
             "question": question,
@@ -129,6 +130,7 @@ class BondAnalystAgent:
             "llm_error": llm_result["error"],
             "disclaimer": DISCLAIMER,
         }
+        return AgentResponse.model_validate(response).model_dump(mode="json")
 
     def _try_llm_answer(self, question: str, plan: dict, report: dict) -> dict:
         base_url = os.environ.get("OPENAI_BASE_URL")

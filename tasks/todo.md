@@ -266,3 +266,32 @@
 - `main` branch protection enabled with required `Tests and agent evals` and `Docker build` checks.
 - Dependabot pull requests `#2`, `#3`, and `#4` closed; temporary Dependabot branches removed.
 - GitHub Actions CI run `26439466397`: passed on `main` for commit `d4d3a94`.
+
+# API Schema and Deployment Readiness Todo
+
+## Plan
+
+- [x] Add Pydantic request, response, health, and error schemas.
+- [x] Validate Agent responses against the Pydantic response contract before returning them.
+- [x] Add `/healthz` for lightweight deployment and Docker health checks.
+- [x] Add `/api/agent/schema` to expose the API contract.
+- [x] Move Docker Compose healthcheck from `/agent` to `/healthz`.
+- [x] Add bilingual deployment documentation.
+- [ ] Push, verify CI, and leave the app running for screenshots.
+
+## Success Criteria
+
+- Existing Agent API fields remain backward compatible.
+- Invalid API input still returns structured HTTP 400 errors.
+- Health checks do not need to run a full Agent query.
+- The schema endpoint documents the request and response contract without requiring an LLM or live data source.
+- Deployment docs explain Docker, Ollama, environment variables, and platform health checks.
+
+## Review
+
+- `python -m ruff check .`: passed.
+- `python -m pytest -q --cache-clear -o cache_dir=.tmp/pytest-cache --basetemp .tmp/pytest-schema-deploy`: passed, 41 tests.
+- `python evals/run_agent_evals.py`: passed, 10/10 cases.
+- `python evals/run_red_team_evals.py`: passed, 3/3 red-team cases.
+- `docker build -t bondlens-ai:schema-deploy .`: passed.
+- `docker compose up -d --build`: `/healthz` returned HTTP 200, `/api/agent/schema` returned the Agent response schema, `/agent?data_mode=static` returned HTTP 200, `/api/agent/query` returned HTTP 200, and container health was `healthy`.

@@ -12,6 +12,30 @@ def test_agent_pages_smoke():
     assert b"Evidence Console" not in response.data
 
 
+def test_healthz():
+    client = app.test_client()
+
+    response = client.get("/healthz")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload == {"checks": {"app": "ok"}, "service": "BondLens AI", "status": "ok"}
+
+
+def test_agent_schema_endpoint():
+    client = app.test_client()
+
+    response = client.get("/api/agent/schema")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert "agent_query_request" in payload
+    assert "agent_response" in payload
+    assert "api_error" in payload
+    assert "final_answer" in payload["agent_response"]["properties"]
+    assert "llm_guardrail" in payload["agent_response"]["properties"]
+
+
 def test_agent_api_smoke():
     client = app.test_client()
 

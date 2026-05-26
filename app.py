@@ -3,8 +3,10 @@ from __future__ import annotations
 import os
 
 from flask import Flask, jsonify, redirect, render_template, request, url_for
+from pydantic import ValidationError
 
 from bond_agent import BondAnalystAgent
+from bond_agent.schemas import AgentQueryRequest, ApiError, HealthResponse, api_schema_bundle
 
 
 app = Flask(__name__)
@@ -15,6 +17,12 @@ DATA_MODES = {"auto", "live", "static"}
 @app.route("/")
 def index():
     return redirect(url_for("agent_page"))
+
+
+@app.route("/healthz")
+def healthz():
+    response = HealthResponse(status="ok", service="BondLens AI", checks={"app": "ok"})
+    return jsonify(response.model_dump(mode="json"))
 
 
 @app.route("/agent", methods=["GET", "POST"])
@@ -34,13 +42,23 @@ def agent_page():
 @app.route("/api/agent/query", methods=["POST"])
 def agent_query():
     payload = request.get_json(silent=True) or {}
-    question = payload.get("question") or request.form.get("question", "")
     try:
-        data_mode = _normalize_data_mode(payload.get("data_mode") or request.form.get("data_mode") or os.environ.get("BOND_DATA_MODE", "auto"))
+        query = AgentQueryRequest.model_validate(payload) if payload else AgentQueryRequest(question=request.form.get("question", ""))
+    except ValidationError as exc:
+        return jsonify(ApiError(error="Invalid agent query request.", details=exc.errors()).model_dump(mode="json")), 400
+    question = query.question or request.form.get("question", "")
+    try:
+        data_mode = _normalize_data_mode(query.data_mode or request.form.get("data_mode") or os.environ.get("BOND_DATA_MODE", "auto"))
     except ValueError as exc:
-        return jsonify({"error": str(exc), "allowed_data_modes": sorted(DATA_MODES)}), 400
+        error = ApiError(error=str(exc), allowed_data_modes=sorted(DATA_MODES))
+        return jsonify(error.model_dump(mode="json", exclude_none=True)), 400
     result = BondAnalystAgent(data_mode=data_mode).answer(question)
     return jsonify(result)
+
+
+@app.route("/api/agent/schema")
+def agent_schema():
+    return jsonify(api_schema_bundle())
 
 
 def _normalize_data_mode(value: str | None) -> str:
