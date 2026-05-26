@@ -2,7 +2,7 @@
 
 ## Plan
 
-- [x] Preserve original thesis state with `legacy-thesis-2024` branch and `thesis-submission-2024-04-24` tag.
+- [x] Preserve original thesis state with the `undergraduate-thesis-2024` branch.
 - [x] Create and switch to `modern-ai-bond-agent` for all upgrade work.
 - [x] Fix Flask startup issues, missing imports, secret key handling, dependencies, and minimal SQLite initialization.
 - [x] Extract bond data loading and local analysis tools into `bond_agent/`.
@@ -75,7 +75,7 @@
 ## Success Criteria
 
 - Agent responses include `data_source`, `risk_explanations`, and `evidence_quality`.
-- README states that `data/testdata.xlsx` is the active static repository sample and the old crawler is preserved only in the legacy branch/tag.
+- README states that `data/testdata.xlsx` is the active static repository sample and the old crawler is preserved only in the undergraduate thesis branch.
 - The app does not depend on the old crawler or live CNSTOCK access.
 - Tests and evals remain deterministic without OpenAI.
 
@@ -93,7 +93,7 @@
 ## Plan
 
 - [x] Remove committed SQLite runtime database from `main`.
-- [x] Remove legacy crawler code from `main`; keep it available through the preserved thesis branch/tag.
+- [x] Remove legacy crawler code from `main`; keep it available through the preserved undergraduate thesis branch.
 - [x] Remove legacy login, KDJ, report, comment, query, and visualization routes from the active Flask app.
 - [x] Remove obsolete templates, static assets, README images, diagram scratch file, and language override files.
 - [x] Slim runtime dependencies to the BondLens AI path.
@@ -106,7 +106,7 @@
 - `main` presents BondLens AI as the only active app surface.
 - No committed runtime database or stale user records remain in `main`.
 - The current Agent still reads `data/testdata.xlsx`.
-- The legacy thesis version remains available from `legacy-thesis-2024` and `thesis-submission-2024-04-24`.
+- The legacy thesis version remains available from `undergraduate-thesis-2024`.
 
 ## Review
 

@@ -16,8 +16,7 @@ BondLens AI is a lightweight, evidence-grounded analysis agent for Chinese bond 
 
 This project started as a 2024 undergraduate thesis project: a Flask-based bond data analysis system. The original thesis version is preserved and should not be rewritten:
 
-- Legacy branch: `legacy-thesis-2024`
-- Legacy tag: `thesis-submission-2024-04-24`
+- Original thesis branch: `undergraduate-thesis-2024`
 - Current branch: `main`
 
 The current branch upgrades the thesis project into an AI Agent / LLM Application / AI Engineer portfolio project while keeping the historical origin visible.
@@ -27,9 +26,9 @@ The current branch upgrades the thesis project into an AI Agent / LLM Applicatio
 This repository intentionally keeps two long-lived branches:
 
 - `main`: the modern BondLens AI portfolio project
-- `legacy-thesis-2024`: the original undergraduate thesis version
+- `undergraduate-thesis-2024`: the original undergraduate thesis version
 
-The legacy tag `thesis-submission-2024-04-24` points to the same preserved thesis-era commit.
+No release tag is kept because the original thesis branch is the preserved historical version.
 
 ## Why This Is An Agent, Not A Chatbot
 
@@ -293,7 +292,7 @@ data/testdata.xlsx
 
 The workbook contains more than 3,000 bond sample rows with fields such as bond name, maturity, clean price, closing yield, weighted yield, and trading volume. It is used for offline demos, deterministic CI, and fallback behavior.
 
-The legacy crawler is preserved in `legacy-thesis-2024` as thesis-era historical code only. It targeted old CNSTOCK news pages, depended on MongoDB and thesis-era text-analysis modules, and is not present in the current `main` runtime. During repository verification on May 26, 2026, the old CNSTOCK HTTP endpoints returned `403 Forbidden` to automated requests, so this project does not present them as an active or reliable live data source.
+The legacy crawler is preserved in `undergraduate-thesis-2024` as thesis-era historical code only. It targeted old CNSTOCK news pages, depended on MongoDB and thesis-era text-analysis modules, and is not present in the current `main` runtime. During repository verification on May 26, 2026, the old CNSTOCK HTTP endpoints returned `403 Forbidden` to automated requests, so this project does not present them as an active or reliable live data source.
 
 ## Risk Explanation Layer
 
@@ -373,7 +372,7 @@ The agent does not invent issuer ratings, credit events, macro views, or investm
 
 The `main` branch removes legacy login/database code, obsolete crawler code, old thesis UI pages, IDE metadata, and unreferenced static dumps. This is safe because:
 
-- `legacy-thesis-2024` and `thesis-submission-2024-04-24` preserve the original repository state.
+- `undergraduate-thesis-2024` preserves the original repository state.
 - Current Flask routes only serve BondLens AI and its API.
 - Core bond sample data, Agent code, tests, Docker, and README documentation are retained.
 

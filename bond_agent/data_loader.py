@@ -151,8 +151,8 @@ def _build_static_profile(
         "active_live_feed": False,
         "provider": "repository",
         "legacy_crawler": {
-            "path": "legacy-thesis-2024:data/Crawler.py",
-            "status": "preserved_in_legacy_branch",
+            "path": "undergraduate-thesis-2024:data/Crawler.py",
+            "status": "preserved_in_undergraduate_thesis_branch",
             "targets": [
                 "http://company.cnstock.com/company/scp_gsxw/",
                 "http://ggjd.cnstock.com/gglist/search/qmtbbdj/",
@@ -188,8 +188,8 @@ def _build_live_profile(df: pd.DataFrame, requested_mode: str) -> dict:
         "columns": [BOND_NAME, MATURITY, PRICE, YIELD, WEIGHTED_YIELD, VOLUME, LIVE_CHANGE_BP],
         "active_live_feed": True,
         "legacy_crawler": {
-            "path": "legacy-thesis-2024:data/Crawler.py",
-            "status": "preserved_in_legacy_branch",
+            "path": "undergraduate-thesis-2024:data/Crawler.py",
+            "status": "preserved_in_undergraduate_thesis_branch",
         },
         "limitations": [
             "Public live endpoint availability depends on third-party source stability and trading session.",

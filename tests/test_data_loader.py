@@ -40,7 +40,7 @@ def test_describe_data_source_marks_static_excel_and_legacy_crawler():
     assert profile["runtime_mode"] == "static_sample"
     assert profile["row_count"] > 3000
     assert profile["active_live_feed"] is False
-    assert profile["legacy_crawler"]["status"] == "preserved_in_legacy_branch"
+    assert profile["legacy_crawler"]["status"] == "preserved_in_undergraduate_thesis_branch"
 
 
 def test_load_live_bond_data_normalizes_akshare_columns():
