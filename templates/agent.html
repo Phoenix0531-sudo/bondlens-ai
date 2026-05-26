@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}AI Bond Analyst Agent{% endblock %}
+{% block title %}BondLens AI{% endblock %}
 
 {% block content %}
 <style>
@@ -41,7 +41,8 @@
 
 <div class="agent-layout">
   <section class="agent-panel">
-    <h1>AI Bond Analyst Agent</h1>
+    <h1>BondLens AI</h1>
+    <p class="lead">Explainable Bond Analysis Agent</p>
     <p class="text-muted">基于 data/testdata.xlsx 的本地工具调用分析。非投资建议，仅用于学习和研究。</p>
 
     <form method="post" class="mb-4">
@@ -67,7 +68,12 @@
           <li>{{ item }}</li>
         {% endfor %}
       </ul>
-      <p class="badge badge-secondary">LLM: {{ 'enabled' if result.used_llm else 'fallback' }}</p>
+      <h3>Planner</h3>
+      <pre>{{ result.plan | tojson(indent=2) }}</pre>
+      <p class="badge badge-secondary">LLM: {{ result.llm_status }}</p>
+      {% if result.llm_error %}
+        <p class="text-muted">{{ result.llm_error }}</p>
+      {% endif %}
     {% else %}
       <p class="text-muted">提交问题后展示每一步工具调用。</p>
     {% endif %}
@@ -80,38 +86,55 @@
     <div class="row">
       <div class="col-md-6">
         <h3>Market Summary</h3>
-        <pre>{{ result.data_evidence.market.yield_summary | tojson(indent=2) }}</pre>
+        {% if result.data_evidence.market %}
+          <pre>{{ result.data_evidence.market.yield_summary | tojson(indent=2) }}</pre>
+        {% else %}
+          <p class="text-muted">本次计划未调用市场概览工具。</p>
+        {% endif %}
       </div>
       <div class="col-md-6">
         <h3>Outliers</h3>
-        <p>异常样本数量：{{ result.data_evidence.outliers.outlier_count }}</p>
-        <pre>{{ result.data_evidence.outliers.metadata | tojson(indent=2) }}</pre>
+        {% if result.data_evidence.outliers %}
+          <p>异常样本数量：{{ result.data_evidence.outliers.outlier_count }}</p>
+          <pre>{{ result.data_evidence.outliers.metadata | tojson(indent=2) }}</pre>
+        {% else %}
+          <p class="text-muted">本次计划未调用异常检测工具。</p>
+        {% endif %}
       </div>
     </div>
 
+    {% if result.data_evidence.comparison %}
+      <h3>Bond vs Market</h3>
+      <pre>{{ result.data_evidence.comparison | tojson(indent=2) }}</pre>
+    {% endif %}
+
     <h3>Top Ranked Bonds</h3>
-    <div class="table-responsive">
-      <table class="table table-sm table-striped evidence-table">
-        <thead>
-          <tr>
-            <th>债券简称</th>
-            <th>待偿期</th>
-            <th>收益率(%)</th>
-            <th>成交量(亿元)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for bond in result.data_evidence.ranking.records %}
+    {% if result.data_evidence.ranking %}
+      <div class="table-responsive">
+        <table class="table table-sm table-striped evidence-table">
+          <thead>
             <tr>
-              <td>{{ bond['债券简称'] }}</td>
-              <td>{{ bond['待偿期'] }}</td>
-              <td>{{ bond['收盘到期收益率(%)'] }}</td>
-              <td>{{ bond['交易量(亿元)'] }}</td>
+              <th>债券简称</th>
+              <th>待偿期</th>
+              <th>收益率(%)</th>
+              <th>成交量(亿元)</th>
             </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {% for bond in result.data_evidence.ranking.records %}
+              <tr>
+                <td>{{ bond['债券简称'] }}</td>
+                <td>{{ bond['待偿期'] }}</td>
+                <td>{{ bond['收盘到期收益率(%)'] }}</td>
+                <td>{{ bond['交易量(亿元)'] }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="text-muted">本次计划未调用排序工具。</p>
+    {% endif %}
   </section>
 {% endif %}
 {% endblock %}

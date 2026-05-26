@@ -1,73 +1,76 @@
-# AI Bond Analyst Agent
+# BondLens AI
 
-一个面向中国债券市场样本数据的可解释固定收益分析 Agent，支持自然语言查询、本地工具调用、收益率分析、异常检测、风险说明和结构化报告生成。
+**Explainable Bond Analysis Agent**
 
-> 非投资建议，仅用于学习和研究。
+BondLens AI is a lightweight, evidence-grounded analysis agent for Chinese bond market sample data. It turns natural-language questions into local Python tool calls, then returns a structured answer with tool trace, data evidence, risk notes, and limitations.
 
-## 项目背景
+> Non-investment advice. For learning, research, and portfolio demonstration only.
 
-本项目源自 2024 年本科毕业设计“债券数据分析系统”。原始本科毕设版本已保留：
+![BondLens AI agent page placeholder](docs/agent-screenshot-placeholder.svg)
 
-- 原版保护分支：`legacy-thesis-2024`
-- 原版提交 tag：`thesis-submission-2024-04-24`
-- 现代化开发分支：`modern-ai-bond-agent`
+## Background
 
-当前版本在不删除原始毕设痕迹的前提下，将旧 Flask 债券数据系统升级为一个适合 AI Agent / LLM Application / AI Engineer 岗位展示的作品集项目。
+This project started as a 2024 undergraduate thesis project: a Flask-based bond data analysis system. The original thesis version is preserved and should not be rewritten:
 
-## 核心亮点
+- Legacy branch: `legacy-thesis-2024`
+- Legacy tag: `thesis-submission-2024-04-24`
+- Modern AI branch: `modern-ai-bond-agent`
 
-- 不是空泛聊天套壳：Agent 必须调用本地 Python 分析工具。
-- 金融结论可追溯：所有分析基于 `data/testdata.xlsx` 真实样本计算。
-- Tool Trace 可见：页面展示自然语言问题到工具调用再到最终回答的全过程。
-- 无 API Key 可运行：默认使用 deterministic fallback 生成结构化报告。
-- 可选 LLM 增强：设置 `OPENAI_API_KEY` 后使用 OpenAI Responses API 基于工具证据润色回答。
-- 工程化交付：包含测试、Docker、环境变量示例和专业 README。
+The current branch upgrades the thesis project into an AI Agent / LLM Application / AI Engineer portfolio project while keeping the historical origin visible.
 
-## Demo
+## Why This Is An Agent, Not A Chatbot
 
-现有本科毕设截图仍保留在 `readme_images/`：
+BondLens AI does not ask an LLM to guess financial answers. The agent follows a small deterministic loop:
 
-![legacy demo](readme_images/1.png)
+1. **Planner** classifies user intent and chooses tools.
+2. **Tools** run local Python analysis over `data/testdata.xlsx`.
+3. **Evidence** is attached to the response as structured JSON.
+4. **Report** is generated from the evidence, with risks and limitations.
+5. **Optional LLM** can polish the answer only after the local evidence exists.
 
-Agent 页面访问：
+If `OPENAI_API_KEY` is not set, the project still runs and uses deterministic fallback output.
 
-```text
-http://localhost:5000/agent
-```
+## Core Capabilities
 
-## 功能列表
+- Intent planning: market overview, bond search, ranking, outlier detection, full bond report
+- Tool trace: each planner/tool step is visible in the Web page and API response
+- Bond search by name, maturity, and yield range
+- Market summary: sample count, yield distribution, volume statistics
+- Ranking by yield, volume, maturity, or price
+- Yield outlier detection with z-score
+- Bond-to-market comparison: yield percentile, volume percentile, maturity percentile, outlier status
+- Agent eval suite for repeatable behavior checks
+- Docker deployment with gunicorn
 
-- 债券简称、收益率、待偿期条件查询
-- 市场样本概览：样本数量、收益率分布、成交量概览
-- 债券排序：按收益率、成交量、期限、净价排序
-- 收益率异常检测：默认 z-score 方法
-- 结构化报告：Question、Tools Used、Data Evidence、Analysis、Risk Notes、Limitations
-- Flask Web 页面和 JSON API
-- Docker 一键启动
-
-## Agent 工作流
+## Agent Workflow
 
 ```mermaid
 flowchart TD
-    A[User Question] --> B[Bond Analyst Agent]
-    B --> C[search_bonds]
-    B --> D[describe_market]
-    B --> E[rank_bonds]
-    B --> F[detect_yield_outliers]
-    C --> G[generate_bond_report]
-    D --> G
-    E --> G
-    F --> G
-    G --> H{OPENAI_API_KEY?}
-    H -->|No| I[Deterministic fallback answer]
-    H -->|Yes| J[LLM enhanced answer based only on tool evidence]
+    A[User Question] --> B[Planner]
+    B --> C{Intent}
+    C -->|market_overview| D[describe_market]
+    C -->|bond_search| E[search_bonds]
+    C -->|ranking| F[rank_bonds]
+    C -->|outlier_detection| G[detect_yield_outliers]
+    C -->|bond_report| H[search_bonds + compare_bond_to_market + market/ranking/outlier tools]
+    D --> I[Evidence JSON]
+    E --> I
+    F --> I
+    G --> I
+    H --> I
+    I --> J[generate_bond_report]
+    J --> K{OPENAI_API_KEY}
+    K -->|missing| L[Deterministic fallback]
+    K -->|set| M[OpenAI evidence-constrained enhancement]
 ```
 
-## Tool Trace 示例
+## Tool Trace Example
 
 ```text
 User question: 搜索23附息国债26并给出收益率分析
+-> planner(intent=bond_report)
 -> search_bonds(name=23附息国债26)
+-> compare_bond_to_market()
 -> describe_market()
 -> rank_bonds(by=yield, top_n=5)
 -> detect_yield_outliers(method=zscore, threshold=3.0)
@@ -75,7 +78,7 @@ User question: 搜索23附息国债26并给出收益率分析
 -> final answer
 ```
 
-## 技术栈
+## Tech Stack
 
 - Python 3.11
 - Flask
@@ -83,65 +86,64 @@ User question: 搜索23附息国债26并给出收益率分析
 - SciPy / Statsmodels / scikit-learn
 - Plotly
 - OpenPyXL
-- OpenAI Python SDK（可选）
-- Pytest
-- Docker / Docker Compose
+- OpenAI Python SDK, optional
+- Pytest + local agent evals
+- Docker Compose + gunicorn
 
-## 项目结构
+## Architecture
 
 ```text
 .
-├── app.py                     # Flask 应用入口，保留旧页面并新增 Agent 页面/API
+├── app.py                       # Flask app entry
 ├── bond_agent/
-│   ├── agent.py               # 单 Agent 编排、Tool Trace、OpenAI 可选增强
-│   ├── data_loader.py         # Excel 数据加载、列名处理、待偿期解析
-│   └── tools.py               # 本地债券分析工具
-├── data/
-│   └── testdata.xlsx          # 债券样本数据
-├── templates/
-│   └── agent.html             # Agent Web 页面
-├── tests/                     # 最小测试套件
+│   ├── agent.py                 # Agent orchestration and LLM fallback status
+│   ├── planner.py               # Rule-based intent planner
+│   ├── data_loader.py           # Excel loading and maturity normalization
+│   └── tools.py                 # Local bond analysis tools
+├── data/testdata.xlsx           # Static bond sample data
+├── evals/
+│   ├── agent_eval_cases.yml     # Behavior cases
+│   └── run_agent_evals.py       # Local eval runner
+├── templates/agent.html         # Agent UI
+├── tests/                       # Unit and smoke tests
 ├── Dockerfile
-├── docker-compose.yml
-├── requirements.txt
-└── requirements-dev.txt
+└── docker-compose.yml
 ```
 
-## Quick Start：Docker
+## Quick Start With Docker
 
 ```bash
 docker compose up --build
 ```
 
-访问：
+Open:
 
 ```text
-http://localhost:5000
 http://localhost:5000/agent
 ```
 
-## 本地开发
+The container runs gunicorn:
+
+```bash
+gunicorn -b 0.0.0.0:5000 app:app
+```
+
+The Compose service is named `bondlens-ai` and includes a healthcheck for `/agent`.
+
+## Local Development
 
 ```bash
 python -m pip install -r requirements-dev.txt
 python app.py
 ```
 
-访问：
+Open:
 
 ```text
 http://localhost:5000/agent
 ```
 
-也可以使用 Flask CLI：
-
-```bash
-flask --app app run --host 0.0.0.0 --port 5000
-```
-
-## 环境变量
-
-复制 `.env.example` 后按需设置：
+## Environment Variables
 
 ```bash
 FLASK_ENV=production
@@ -150,74 +152,31 @@ OPENAI_API_KEY=
 OPENAI_MODEL=gpt-5.4-mini
 ```
 
-说明：
+- `SECRET_KEY`: Flask session secret.
+- `OPENAI_API_KEY`: optional. If empty, deterministic fallback is used.
+- `OPENAI_MODEL`: configurable model for evidence-constrained answer enhancement.
 
-- `SECRET_KEY`：Flask session 密钥，生产环境必须修改。
-- `OPENAI_API_KEY`：为空时使用本地 deterministic fallback。
-- `OPENAI_MODEL`：默认 `gpt-5.4-mini`，可按成本和效果自行配置。
+The API response exposes safe LLM state:
 
-## 示例问题
+```json
+{
+  "used_llm": false,
+  "llm_status": "disabled",
+  "llm_error": null
+}
+```
+
+## Example Questions
 
 ```text
-找出收益率最高的债券，并说明是否有异常收益率样本。
-搜索23附息国债26并给出收益率分析。
-按成交量排序，列出最活跃的前5只债券。
-当前样本的收益率分布是什么样？
-期限最长的债券有哪些？
+当前样本收益率分布是什么样？
+搜索23附息国债26并给出收益率分析
+按收益率列出最高的前5只债券
+按成交量列出最活跃的前5只债券
+按期限列出最长的前5只债券
+有没有收益率异常的债券？
+筛选收益率大于 3 的债券
 ```
-
-## 示例输出
-
-```text
-Question: 找出收益率最高的债券，并说明是否有异常收益率样本。
-
-Tools Used:
-- describe_market
-- rank_bonds
-- detect_yield_outliers
-- generate_bond_report
-
-Data Evidence:
-- 样本数量: 3365
-- 收益率摘要: mean / median / min / max 等统计量
-- 排序字段: 收盘到期收益率(%)
-- 异常样本数量: z-score 阈值下的异常数量
-
-Analysis:
-- 基于样本收益率、成交量和异常分数给出解释。
-
-Risk Notes:
-- 高收益可能对应信用、流动性、久期或估值波动风险。
-
-Limitations:
-- 仅基于项目内静态样本数据。
-- 非投资建议，仅用于学习和研究。
-```
-
-## 测试方式
-
-```bash
-python -m pytest -q
-```
-
-当前测试覆盖：
-
-- 数据加载和待偿期解析
-- 市场统计工具
-- 排序工具
-- 收益率异常检测工具
-- Agent fallback 输出
-- Flask 关键路由 smoke test
-
-## 数据说明
-
-核心数据文件为：
-
-```text
-data/testdata.xlsx
-```
-
-当前 Agent 只使用项目内数据计算，不调用实时行情接口生成金融结论。`data/Crawler.py` 和旧静态资源属于原本科毕设遗留内容，暂不作为第一阶段 Agent 的运行依赖。
 
 ## API
 
@@ -226,37 +185,96 @@ POST /api/agent/query
 Content-Type: application/json
 
 {
-  "question": "找出收益率最高的债券"
+  "question": "搜索23附息国债26并给出收益率分析"
 }
 ```
 
-返回字段包括：
+Key response fields:
 
-- `agent`
-- `question`
-- `tools_used`
-- `tool_trace`
-- `data_evidence`
-- `analysis`
-- `risk_notes`
-- `limitations`
-- `final_answer`
-- `used_llm`
-- `disclaimer`
+- `plan`: planner intent, selected tools, ranking/search parameters
+- `tools_used`: tools actually used for the answer
+- `tool_trace`: human-readable step trace
+- `data_evidence`: raw market/search/ranking/outlier/comparison evidence
+- `final_answer`: report text
+- `llm_status`: `disabled`, `success`, or `failed`
+
+## Agent Eval
+
+Run deterministic behavior checks:
+
+```bash
+python evals/run_agent_evals.py
+```
+
+The eval suite checks:
+
+- expected planner intent
+- expected tools
+- required answer keywords
+- optional forbidden answer keywords
+
+It does not call OpenAI.
+
+## Tests
+
+```bash
+python -m pytest -q
+```
+
+Coverage includes:
+
+- planner intent classification
+- intent-aware tool routing
+- market statistics
+- ranking tools
+- yield outlier detection
+- bond-to-market comparison
+- concrete bond report behavior
+- LLM disabled/success/failed status with mocks
+- Flask page/API smoke tests
+- eval case loading
+
+## Data Boundary
+
+All financial conclusions are computed from project data:
+
+```text
+data/testdata.xlsx
+```
+
+The agent does not invent issuer ratings, credit events, macro views, or investment recommendations. Old crawler files remain historical context, but the current Agent path uses local static data only.
+
+## Modern Branch Cleanup
+
+The modern branch removes obvious IDE metadata and unreferenced legacy static dumps such as offline Angular docs and scraped `static/subject` pages. This is safe because:
+
+- `legacy-thesis-2024` and `thesis-submission-2024-04-24` preserve the original repository state.
+- Current Flask templates and static files do not reference the removed paths.
+- Core data, templates, screenshots, CSS, JS, and images are retained.
+
+## Interview Talking Points
+
+- **Tool calling design:** deterministic planner maps user intent to local Python tools.
+- **Evidence constraint:** final answers are generated from `data_evidence`, not free-form finance guessing.
+- **Fallback design:** no API key required; OpenAI path is optional and observable.
+- **Risk boundary:** output always includes limitations and non-investment-advice language.
+- **Eval method:** local eval cases test intent, tool selection, and answer constraints.
+- **Dockerization:** gunicorn runtime, healthcheck, and reproducible dependency install.
+- **Legacy migration:** original thesis version preserved, modern branch cleaned for portfolio use.
 
 ## Roadmap
 
-- 接入 AkShare 实时债券/利率数据，并明确实时数据与静态样本的差异
-- 增加 RAG：接入债券术语、评级说明、固定收益教材笔记
-- 增加 Agent eval：固定问题集、工具调用正确性、证据一致性检查
-- 导出 PDF/Markdown 债券分析报告
-- 添加 GitHub Actions CI
-- 增加更细的风险模型：久期、凸性、信用利差、流动性分层
+- Add GitHub Actions CI
+- Add real-time AkShare data with explicit static-vs-live source labels
+- Add RAG for bond terminology and fixed-income risk concepts
+- Add PDF/Markdown report export
+- Add richer agent evals for evidence consistency
+- Add duration, convexity, credit spread, and liquidity buckets
 
-## License 说明
+## License
 
-当前仓库未声明明确开源许可证。用于学习、作品集展示或招聘沟通前请保留原作者和本科毕设来源说明；如需正式开源，建议后续补充 `LICENSE` 文件。
+No explicit open-source license is currently declared. Keep the thesis origin and author context visible when using this project for learning, portfolio review, or interview discussion.
 
-## 免责声明
+## Disclaimer
 
-本项目输出不构成任何投资建议、交易建议、评级意见或收益承诺。所有结果仅基于 `data/testdata.xlsx` 或项目内真实数据计算，用于学习、研究和工程展示。
+BondLens AI does not provide investment advice, trading advice, ratings opinions, or return guarantees. Outputs are for learning, research, and engineering demonstration only.
