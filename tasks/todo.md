@@ -212,7 +212,7 @@
 - [x] Add live AkShare snapshot cache so live failures fall back to the most recent successful live fetch before using the static Excel sample.
 - [x] Add red-team evals for buy/sell advice, return guarantees, and overconfident safety wording.
 - [x] Surface the new guardrail and snapshot state in the Web UI and bilingual README.
-- [ ] Push and verify CI.
+- [x] Push and verify CI.
 
 ## Success Criteria
 
@@ -230,3 +230,4 @@
 - `docker build -t bondlens-ai:risk-snapshot-redteam .`: passed.
 - `docker compose up -d --build`: `/agent` returned HTTP 200, `/api/agent/query` returned HTTP 200, healthcheck was healthy.
 - `docker compose down`: completed.
+- GitHub Actions CI run `26438378150`: passed on `main` for commit `62e38ee`.
