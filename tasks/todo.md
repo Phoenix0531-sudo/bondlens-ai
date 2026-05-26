@@ -126,7 +126,7 @@
 - [x] Keep CI and agent evals on static mode so external API instability does not break builds.
 - [x] Update English and Chinese README documentation for live data, fallback, and environment controls.
 - [x] Run lint, tests, evals, Docker build, and local smoke checks.
-- [ ] Push and verify GitHub Actions.
+- [x] Push and verify GitHub Actions.
 
 ## Success Criteria
 
@@ -144,3 +144,4 @@
 - `python evals/run_agent_evals.py`: passed, 10/10 cases.
 - `docker build -t bondlens-ai:live .`: passed.
 - `docker compose up -d --build`: `/agent` returned HTTP 200, `/api/agent/query` returned live AkShare data, healthcheck was healthy, and `docker compose down` removed the container.
+- GitHub Actions CI run `26430512616`: passed on `main` for commit `a20c7ae`.
