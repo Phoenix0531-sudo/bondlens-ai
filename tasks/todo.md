@@ -186,7 +186,7 @@
 - [x] Fall back to the deterministic report when the LLM output contains unsupported numeric claims.
 - [x] Surface guardrail status in the Web UI and bilingual README.
 - [x] Run lint, tests, evals, Docker build, and local Ollama smoke.
-- [ ] Push and verify CI.
+- [x] Push and verify CI.
 
 ## Success Criteria
 
@@ -202,3 +202,4 @@
 - `python evals/run_agent_evals.py`: passed, 10/10 cases.
 - `docker build -t bondlens-ai:guardrail .`: passed.
 - Local Ollama smoke with `qwen2.5:1.5b`: LLM call succeeded; guardrail rejected one generated answer and safely used `deterministic_fallback`.
+- GitHub Actions CI run `26437352781`: passed on `main` for commit `f75e8d9`.
