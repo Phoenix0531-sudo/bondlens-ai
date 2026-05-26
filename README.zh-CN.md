@@ -4,6 +4,8 @@
 
 [English](README.md) | [中文](README.zh-CN.md)
 
+![CI](https://github.com/Phoenix0531-sudo/bondlens-ai/actions/workflows/ci.yml/badge.svg)
+
 BondLens AI 是一个面向中文债券样本数据的轻量级、证据驱动分析智能体。它把自然语言问题转换成本地 Python 工具调用，并返回包含工具轨迹、数据证据、风险提示和能力边界的结构化回答。
 
 > 本项目不提供投资建议，仅用于学习、研究、作品集展示和面试讨论。

@@ -4,6 +4,8 @@
 
 [English](README.md) | [中文](README.zh-CN.md)
 
+![CI](https://github.com/Phoenix0531-sudo/bondlens-ai/actions/workflows/ci.yml/badge.svg)
+
 BondLens AI is a lightweight, evidence-grounded analysis agent for Chinese bond market sample data. It turns natural-language questions into local Python tool calls, then returns a structured answer with tool trace, data evidence, risk notes, and limitations.
 
 > Non-investment advice. For learning, research, and portfolio demonstration only.
