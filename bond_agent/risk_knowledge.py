@@ -31,17 +31,17 @@ RISK_SNIPPETS = [
     },
     {
         "id": "credit_risk",
-        "title": "Credit context is outside the static sample",
+        "title": "Credit context is outside the active market feed",
         "keywords": ["信用", "评级", "发行人", "违约", "credit", "rating"],
-        "summary": "The current data sample does not include issuer ratings, financial statements, guarantees, or credit events, so credit conclusions must stay limited.",
+        "summary": "The active market feed does not include issuer ratings, financial statements, guarantees, or credit events, so credit conclusions must stay limited.",
         "watch_points": ["Do not infer ratings from yield alone.", "Use external issuer and rating data before making credit judgments."],
     },
     {
         "id": "data_boundary",
-        "title": "Static data limits decision confidence",
+        "title": "Data coverage limits decision confidence",
         "keywords": ["数据", "样本", "来源", "实时", "crawler", "爬虫", "testdata"],
-        "summary": "The Agent uses a local static Excel sample. This supports repeatable analysis and tests, but it cannot claim live market freshness.",
-        "watch_points": ["Label answers as static-sample analysis.", "Add live AkShare or exchange data before discussing current market conditions."],
+        "summary": "The Agent can use AkShare live bond data and a local Excel fallback. Each answer should state which source was active and avoid conclusions outside available fields.",
+        "watch_points": ["Check the response data_source before discussing freshness.", "Use issuer, rating, curve, and news data before making credit or investment judgments."],
     },
 ]
 

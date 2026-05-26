@@ -49,7 +49,7 @@ def evaluate_case(agent: BondAnalystAgent, case: dict) -> list[str]:
 
 
 def run_evals() -> int:
-    agent = BondAnalystAgent()
+    agent = BondAnalystAgent(data_mode="static")
     cases = load_cases()
     failed = 0
 

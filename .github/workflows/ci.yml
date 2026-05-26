@@ -25,6 +25,7 @@ jobs:
       SECRET_KEY: ci-secret-key
       OPENAI_API_KEY: ""
       OPENAI_MODEL: gpt-5.4-mini
+      BOND_DATA_MODE: static
 
     steps:
       - name: Check out repository

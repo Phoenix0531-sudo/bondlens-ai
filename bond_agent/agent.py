@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import os
 
-from .data_loader import describe_data_source
+from .data_loader import resolve_bond_data
 from .evidence_quality import assess_evidence_quality
 from .planner import classify_intent
 from .risk_knowledge import retrieve_risk_explanations
@@ -23,19 +23,30 @@ DISCLAIMER = "非投资建议，仅用于学习和研究。"
 class BondAnalystAgent:
     name = "BondLens AI"
 
-    def __init__(self, data_path: str | None = None) -> None:
+    def __init__(self, data_path: str | None = None, data_mode: str | None = None, live_fetcher=None) -> None:
         self.data_path = data_path
+        self.data_mode = data_mode or os.environ.get("BOND_DATA_MODE", "auto")
+        self.live_fetcher = live_fetcher
 
     def answer(self, question: str) -> dict:
         question = question.strip() or "请概览当前债券市场样本。"
-        plan = classify_intent(question, data_path=self.data_path)
+        data_frame, data_source = resolve_bond_data(
+            mode=self.data_mode,
+            path=self.data_path or None,
+            live_fetcher=self.live_fetcher,
+        )
+        plan = classify_intent(question, data_path=self.data_path, data_frame=data_frame)
         tool_outputs: list[dict] = []
-        tool_trace: list[str] = [f"User question: {question}", f"-> planner(intent={plan['intent']})"]
+        tool_trace: list[str] = [
+            f"User question: {question}",
+            f"-> data_source(mode={data_source['runtime_mode']}, source={data_source['source_id']})",
+            f"-> planner(intent={plan['intent']})",
+        ]
 
         report = None
         for tool_name in plan["requested_tools"]:
             if tool_name == "search_bonds":
-                result = search_bonds(**plan["search_params"], data_path=self.data_path)
+                result = search_bonds(**plan["search_params"], data_frame=data_frame)
                 tool_outputs.append(result)
                 tool_trace.append(f"-> search_bonds({self._compact_args(plan['search_params'])})")
             elif tool_name == "compare_bond_to_market":
@@ -44,12 +55,12 @@ class BondAnalystAgent:
                 result = compare_bond_to_market(
                     bond_name=plan["search_params"].get("name"),
                     record=first_record,
-                    data_path=self.data_path,
+                    data_frame=data_frame,
                 )
                 tool_outputs.append(result)
                 tool_trace.append("-> compare_bond_to_market()")
             elif tool_name == "describe_market":
-                result = describe_market(data_path=self.data_path)
+                result = describe_market(data_frame=data_frame)
                 tool_outputs.append(result)
                 tool_trace.append("-> describe_market()")
             elif tool_name == "rank_bonds":
@@ -57,12 +68,12 @@ class BondAnalystAgent:
                     by=plan["rank_by"] or "yield",
                     top_n=5,
                     ascending=plan["ascending"],
-                    data_path=self.data_path,
+                    data_frame=data_frame,
                 )
                 tool_outputs.append(result)
                 tool_trace.append(f"-> rank_bonds(by={plan['rank_by'] or 'yield'}, top_n=5)")
             elif tool_name == "detect_yield_outliers":
-                result = detect_yield_outliers(method="zscore", threshold=3.0, top_n=5, data_path=self.data_path)
+                result = detect_yield_outliers(method="zscore", threshold=3.0, top_n=5, data_frame=data_frame)
                 tool_outputs.append(result)
                 tool_trace.append("-> detect_yield_outliers(method=zscore, threshold=3.0)")
             elif tool_name == "generate_bond_report":
@@ -73,7 +84,6 @@ class BondAnalystAgent:
             report = generate_bond_report(question, tool_outputs, plan=plan)
             tool_trace.append("-> generate_bond_report()")
 
-        data_source = describe_data_source(self.data_path) if self.data_path else describe_data_source()
         risk_explanations = retrieve_risk_explanations(question, report)
         evidence_quality = assess_evidence_quality(plan, report, data_source, risk_explanations)
         report["data_source"] = data_source
@@ -158,6 +168,10 @@ class BondAnalystAgent:
         risk_explanations = report.get("risk_explanations") or []
         if data_source:
             lines.append(f"- 数据源: {data_source.get('source_name')} ({data_source.get('runtime_mode')})")
+            if data_source.get("fetched_at"):
+                lines.append(f"- 获取时间: {data_source.get('fetched_at')}")
+            if data_source.get("fallback_reason"):
+                lines.append(f"- 实时数据降级原因: {data_source.get('fallback_reason')}")
             lines.append(f"- 样本行数: {data_source.get('row_count')}，有效收益率记录: {data_source.get('valid_yield_count')}")
 
         if market:

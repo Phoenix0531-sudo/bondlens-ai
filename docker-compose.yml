@@ -8,6 +8,7 @@ services:
       SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-me}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.4-mini}
+      BOND_DATA_MODE: ${BOND_DATA_MODE:-auto}
       FLASK_RUN_HOST: 0.0.0.0
       PORT: 5000
     healthcheck:

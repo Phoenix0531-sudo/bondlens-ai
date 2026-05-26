@@ -45,10 +45,17 @@ def assess_evidence_quality(plan: dict, report: dict, data_source: dict, risk_ex
         checks.append("Risk explanation snippets were retrieved from the local knowledge base.")
 
     penalties = []
-    if data_source.get("runtime_mode") == "static_sample":
+    runtime_mode = data_source.get("runtime_mode")
+    if runtime_mode == "live":
+        score += 10
+        checks.append("Live public bond market data was fetched for this answer.")
+    elif runtime_mode == "static_fallback":
+        score -= 15
+        penalties.append("Live data fetch failed and the answer used the local fallback sample.")
+    elif runtime_mode == "static_sample":
         score -= 10
         penalties.append("Static sample limits data freshness.")
-    if not data_source.get("active_crawler"):
+    if not data_source.get("active_live_feed"):
         penalties.append("No live crawler or market feed is active in the Agent path.")
     penalties.append("Issuer ratings, credit events, and macro curves are not attached.")
 
@@ -60,7 +67,7 @@ def assess_evidence_quality(plan: dict, report: dict, data_source: dict, risk_ex
         "level": level,
         "analysis_confidence": level,
         "decision_confidence": "low",
-        "data_freshness": "static_snapshot",
+        "data_freshness": "live_fetch" if runtime_mode == "live" else "static_snapshot",
         "coverage": {
             "intent": intent,
             "tools_used_count": len(tools_used),
@@ -72,7 +79,7 @@ def assess_evidence_quality(plan: dict, report: dict, data_source: dict, risk_ex
         "checks": checks,
         "penalties": penalties,
         "summary": (
-            f"Evidence quality is {level} for static-sample analysis, but decision confidence remains low "
-            "because live market data, issuer credit context, and macro curve data are not attached."
+            f"Evidence quality is {level} for the active data source, but decision confidence remains low "
+            "because issuer credit context, macro curve data, and full security master fields are not attached."
         ),
     }

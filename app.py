@@ -20,17 +20,19 @@ def index():
 def agent_page():
     result = None
     question = ""
+    data_mode = request.values.get("data_mode", os.environ.get("BOND_DATA_MODE", "auto"))
     if request.method == "POST":
         question = request.form.get("question", "").strip()
-        result = BondAnalystAgent().answer(question)
-    return render_template("agent.html", result=result, question=question)
+        result = BondAnalystAgent(data_mode=data_mode).answer(question)
+    return render_template("agent.html", result=result, question=question, data_mode=data_mode)
 
 
 @app.route("/api/agent/query", methods=["POST"])
 def agent_query():
     payload = request.get_json(silent=True) or {}
     question = payload.get("question") or request.form.get("question", "")
-    result = BondAnalystAgent().answer(question)
+    data_mode = payload.get("data_mode") or request.form.get("data_mode") or os.environ.get("BOND_DATA_MODE", "auto")
+    result = BondAnalystAgent(data_mode=data_mode).answer(question)
     return jsonify(result)
 
 

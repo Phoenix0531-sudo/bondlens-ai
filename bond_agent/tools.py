@@ -46,6 +46,10 @@ def _summary(series: pd.Series) -> dict:
     }
 
 
+def _resolve_frame(data_frame: pd.DataFrame | None = None, data_path: str | None = None) -> pd.DataFrame:
+    return data_frame.copy() if data_frame is not None else load_bond_data(data_path) if data_path else load_bond_data()
+
+
 def search_bonds(
     name: str | None = None,
     min_maturity: float | None = None,
@@ -54,8 +58,9 @@ def search_bonds(
     max_yield: float | None = None,
     limit: int = 20,
     data_path: str | None = None,
+    data_frame: pd.DataFrame | None = None,
 ) -> dict:
-    df = load_bond_data(data_path) if data_path else load_bond_data()
+    df = _resolve_frame(data_frame=data_frame, data_path=data_path)
 
     if name:
         df = df[df[BOND_NAME].str.contains(name, case=False, na=False, regex=False)]
@@ -83,8 +88,8 @@ def search_bonds(
     }
 
 
-def describe_market(data_path: str | None = None) -> dict:
-    df = load_bond_data(data_path) if data_path else load_bond_data()
+def describe_market(data_path: str | None = None, data_frame: pd.DataFrame | None = None) -> dict:
+    df = _resolve_frame(data_frame=data_frame, data_path=data_path)
     yield_data = pd.to_numeric(df[YIELD], errors="coerce").dropna()
     bins = pd.cut(yield_data, bins=5).value_counts().sort_index()
 
@@ -105,8 +110,9 @@ def rank_bonds(
     top_n: int = 10,
     ascending: bool = False,
     data_path: str | None = None,
+    data_frame: pd.DataFrame | None = None,
 ) -> dict:
-    df = load_bond_data(data_path) if data_path else load_bond_data()
+    df = _resolve_frame(data_frame=data_frame, data_path=data_path)
     column = RANK_COLUMNS.get(by, by)
     if column not in df.columns:
         allowed = ", ".join(sorted(RANK_COLUMNS))
@@ -127,8 +133,9 @@ def detect_yield_outliers(
     threshold: float = 3.0,
     top_n: int = 20,
     data_path: str | None = None,
+    data_frame: pd.DataFrame | None = None,
 ) -> dict:
-    df = load_bond_data(data_path) if data_path else load_bond_data()
+    df = _resolve_frame(data_frame=data_frame, data_path=data_path)
     clean = df.dropna(subset=[YIELD]).copy()
 
     if method == "iqr":
@@ -164,9 +171,10 @@ def compare_bond_to_market(
     bond_name: str | None = None,
     record: dict | None = None,
     data_path: str | None = None,
+    data_frame: pd.DataFrame | None = None,
     outlier_threshold: float = 3.0,
 ) -> dict:
-    df = load_bond_data(data_path) if data_path else load_bond_data()
+    df = _resolve_frame(data_frame=data_frame, data_path=data_path)
     target = None
 
     if record:
@@ -186,7 +194,7 @@ def compare_bond_to_market(
             "tool": "compare_bond_to_market",
             "bond_name": bond_name,
             "found": False,
-            "message": "No matching bond record found in data/testdata.xlsx.",
+            "message": "No matching bond record found in the active bond data source.",
         }
 
     yield_series = pd.to_numeric(df[YIELD], errors="coerce").dropna()
@@ -243,8 +251,9 @@ def generate_bond_report(question: str, tool_outputs: Sequence[dict], plan: dict
             "成交量低的债券可能存在流动性不足，样本内排序不等同于可交易机会。",
         ],
         "limitations": [
-            "本报告仅基于项目内 data/testdata.xlsx 的静态样本计算。",
-            "未接入实时行情、评级、主体财务、宏观利率曲线或新闻事件。",
+            "本报告仅基于当前 Agent 数据源的可用字段计算。",
+            "公开实时接口可能受交易时段、第三方源稳定性和字段覆盖限制影响。",
+            "未接入评级、主体财务、宏观利率曲线或新闻事件。",
             "非投资建议，仅用于学习和研究。",
         ],
     }
@@ -309,8 +318,8 @@ def _build_analysis(
 
     if search and search.get("match_count") == 0:
         return [
-            "未在 data/testdata.xlsx 中找到符合条件的债券记录。",
-            "请检查债券简称、收益率范围或待偿期条件；本项目不会凭空补充项目外数据。",
+            "未在当前债券数据源中找到符合条件的债券记录。",
+            "请检查债券简称、收益率范围或待偿期条件；本项目不会凭空补充数据源之外的信息。",
         ]
 
     if intent == "ranking":

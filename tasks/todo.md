@@ -115,3 +115,32 @@
 - `python evals/run_agent_evals.py`: passed, 10/10 cases.
 - `docker build --no-cache -t bondlens-ai:cleanup .`: passed.
 - `python app.py` smoke: `/agent` returned HTTP 200, `/` returned HTTP 302 to `/agent`, `/api/agent/query` returned local static-sample analysis with `used_llm=false`.
+
+# Live Bond Data Todo
+
+## Plan
+
+- [x] Make AkShare `bond_spot_deal` the default runtime data source.
+- [x] Keep `data/testdata.xlsx` as the local fallback data source.
+- [x] Add deterministic tests for live normalization and fallback behavior.
+- [x] Keep CI and agent evals on static mode so external API instability does not break builds.
+- [x] Update English and Chinese README documentation for live data, fallback, and environment controls.
+- [x] Run lint, tests, evals, Docker build, and local smoke checks.
+- [ ] Push and verify GitHub Actions.
+
+## Success Criteria
+
+- Default app/API mode is `auto`: try AkShare live market data first, then fall back to `data/testdata.xlsx`.
+- The `/agent` UI lets reviewers choose `auto`, `live`, or `static`.
+- Agent responses identify the requested mode, actual runtime mode, provider, row counts, and fallback reason if live fetch fails.
+- Tests do not require internet access.
+
+## Review
+
+- AkShare documentation confirms `bond_spot_deal` provides ChinaMoney current bond deal data with bond name, clean price, latest yield, BP change, weighted yield, and volume fields.
+- Local `auto` mode smoke returned `runtime_mode=live`, `source_id=akshare_bond_spot_deal`, and more than 500 live rows.
+- `python -m ruff check .`: passed.
+- `python -m pytest -q --basetemp .tmp/pytest-live-<guid>`: passed, 29 tests.
+- `python evals/run_agent_evals.py`: passed, 10/10 cases.
+- `docker build -t bondlens-ai:live .`: passed.
+- `docker compose up -d --build`: `/agent` returned HTTP 200, `/api/agent/query` returned live AkShare data, healthcheck was healthy, and `docker compose down` removed the container.

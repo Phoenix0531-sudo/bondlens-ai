@@ -43,13 +43,21 @@
   <section class="agent-panel">
     <h1>BondLens AI</h1>
     <p class="lead">Explainable Bond Analysis Agent</p>
-    <p class="text-muted">基于静态 Excel 样本、本地工具、风险解释检索和证据质量评估。非投资建议，仅用于学习和研究。</p>
+    <p class="text-muted">优先使用 AkShare 实时债券行情，失败时降级到本地 Excel 样本。非投资建议，仅用于学习和研究。</p>
 
     <form method="post" class="mb-4">
       <div class="form-group">
         <label for="question">自然语言问题</label>
         <textarea id="question" name="question" class="form-control" rows="4"
                   placeholder="例如：找出收益率最高的债券，并说明是否有异常收益率样本。">{{ question }}</textarea>
+      </div>
+      <div class="form-group">
+        <label for="data_mode">数据源模式</label>
+        <select id="data_mode" name="data_mode" class="form-control">
+          <option value="auto" {% if data_mode == 'auto' %}selected{% endif %}>Auto: 实时优先，失败后使用本地备用</option>
+          <option value="live" {% if data_mode == 'live' %}selected{% endif %}>Live: AkShare 实时债券行情</option>
+          <option value="static" {% if data_mode == 'static' %}selected{% endif %}>Static: 本地 Excel 备用样本</option>
+        </select>
       </div>
       <button class="btn btn-primary" type="submit">运行 Agent</button>
     </form>
@@ -87,11 +95,17 @@
     <div class="row">
       <div class="col-md-6">
         <p><strong>{{ result.data_source.source_name }}</strong></p>
-        <p>模式：{{ result.data_source.runtime_mode }}；样本行数：{{ result.data_source.row_count }}；有效收益率记录：{{ result.data_source.valid_yield_count }}</p>
+        <p>请求模式：{{ result.data_source.requested_mode }}；实际模式：{{ result.data_source.runtime_mode }}；样本行数：{{ result.data_source.row_count }}；有效收益率记录：{{ result.data_source.valid_yield_count }}</p>
+        {% if result.data_source.fetched_at %}
+          <p>获取时间：{{ result.data_source.fetched_at }}</p>
+        {% endif %}
+        {% if result.data_source.fallback_reason %}
+          <p class="text-muted">实时数据降级原因：{{ result.data_source.fallback_reason }}</p>
+        {% endif %}
       </div>
       <div class="col-md-6">
-        <p>旧爬虫状态：{{ result.data_source.legacy_crawler.status }}</p>
-        <p class="text-muted">当前 Agent 不调用旧 CNSTOCK 爬虫，也不声称实时市场数据。</p>
+        <p>Provider：{{ result.data_source.provider }}</p>
+        <p class="text-muted">本地 Excel 仍作为备用数据源；旧本科爬虫仅保留在 legacy 分支。</p>
       </div>
     </div>
 

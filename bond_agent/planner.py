@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import re
 
+import pandas as pd
+
 from .data_loader import BOND_NAME, load_bond_data
 
 
@@ -13,9 +15,9 @@ RANK_KEYWORDS = {
 }
 
 
-def classify_intent(question: str, data_path: str | None = None) -> dict:
+def classify_intent(question: str, data_path: str | None = None, data_frame: pd.DataFrame | None = None) -> dict:
     normalized = (question or "").strip()
-    search_params = _extract_search_params(normalized, data_path=data_path)
+    search_params = _extract_search_params(normalized, data_path=data_path, data_frame=data_frame)
     rank_by, ascending = _choose_rank(normalized)
 
     if not normalized:
@@ -95,14 +97,14 @@ def classify_intent(question: str, data_path: str | None = None) -> dict:
     }
 
 
-def _extract_search_params(question: str, data_path: str | None = None) -> dict:
+def _extract_search_params(question: str, data_path: str | None = None, data_frame: pd.DataFrame | None = None) -> dict:
     params: dict = {"limit": 10}
 
     quoted = re.search(r"[“\"']([^“\"']+)[”\"']", question)
     if quoted:
         params["name"] = quoted.group(1).strip()
     else:
-        bond_name = _find_bond_name(question, data_path=data_path)
+        bond_name = _find_bond_name(question, data_path=data_path, data_frame=data_frame)
         if bond_name:
             params["name"] = bond_name
 
@@ -135,9 +137,9 @@ def _choose_rank(question: str) -> tuple[str | None, bool]:
     return None, False
 
 
-def _find_bond_name(question: str, data_path: str | None = None) -> str | None:
+def _find_bond_name(question: str, data_path: str | None = None, data_frame: pd.DataFrame | None = None) -> str | None:
     try:
-        df = load_bond_data(data_path) if data_path else load_bond_data()
+        df = data_frame if data_frame is not None else load_bond_data(data_path) if data_path else load_bond_data()
         names = df[BOND_NAME].dropna().astype(str).unique()
     except Exception:
         names = []
