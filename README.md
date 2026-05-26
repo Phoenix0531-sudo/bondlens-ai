@@ -10,6 +10,8 @@ BondLens AI is a lightweight, evidence-grounded analysis agent for Chinese bond 
 
 > Non-investment advice. For learning, research, and portfolio demonstration only.
 
+Project page: [https://phoenix0531-sudo.github.io/bondlens-ai/](https://phoenix0531-sudo.github.io/bondlens-ai/)
+
 ![BondLens AI agent page placeholder](docs/agent-screenshot-placeholder.svg)
 
 ## Background
@@ -116,6 +118,7 @@ User question: 搜索23附息国债26并给出收益率分析
 - OpenAI Python SDK, optional
 - Pytest + local agent evals
 - Docker Compose + gunicorn
+- GitHub Actions CI + Dependabot
 
 ## Architecture
 
@@ -131,6 +134,7 @@ User question: 搜索23附息国债26并给出收益率分析
 │   ├── llm_guardrail.py         # Numeric and risk-language checks for LLM answers
 │   └── tools.py                 # Local bond analysis tools
 ├── data/testdata.xlsx           # Static bond sample data
+├── docs/index.html              # GitHub Pages project page
 ├── evals/
 │   ├── agent_eval_cases.yml     # Behavior cases
 │   ├── red_team_eval_cases.yml  # Safety boundary cases
@@ -138,6 +142,10 @@ User question: 搜索23附息国债26并给出收益率分析
 │   └── run_red_team_evals.py    # Red-team eval runner
 ├── templates/agent.html         # Agent UI
 ├── tests/                       # Unit and smoke tests
+├── CONTRIBUTING.md
+├── SECURITY.md
+├── CODE_OF_CONDUCT.md
+├── LICENSE
 ├── Dockerfile
 └── docker-compose.yml
 ```
@@ -378,6 +386,20 @@ Coverage includes:
 - Flask page/API smoke tests
 - eval case loading
 
+## Repository Governance
+
+The repository includes:
+
+- MIT license
+- contributing guide
+- security policy
+- code of conduct
+- pull request template
+- bug and feature issue templates
+- Dependabot configuration for Python dependencies and GitHub Actions
+
+The recommended branch policy is to protect `main` and require the CI workflow to pass before merging. The original thesis branch remains unprotected historical reference and should not receive modern feature work.
+
 ## Data Boundary
 
 All financial conclusions are computed from the active data source shown in each response:
@@ -419,7 +441,7 @@ The `main` branch removes legacy login/database code, obsolete crawler code, old
 
 ## License
 
-No explicit open-source license is currently declared. Keep the thesis origin and author context visible when using this project for learning, portfolio review, or interview discussion.
+MIT. Keep the thesis origin and author context visible when using this project for learning, portfolio review, or interview discussion.
 
 ## Disclaimer
 

@@ -4,205 +4,682 @@
 
 {% block content %}
 <style>
-  .agent-layout {
+  .agent-hero {
     display: grid;
-    grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
-    gap: 24px;
+    grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+    gap: 22px;
+    align-items: stretch;
   }
-  .agent-panel {
-    background: #fff;
-    border: 1px solid #dee2e6;
-    border-radius: 6px;
+
+  .hero-copy {
+    min-height: 360px;
+    padding: 38px;
+    border: 1px solid var(--line);
+    background: linear-gradient(135deg, rgba(255, 253, 248, 0.98), rgba(235, 230, 218, 0.92));
+    box-shadow: var(--shadow);
+  }
+
+  .eyebrow {
+    margin: 0 0 16px;
+    color: var(--teal);
+    font-size: 13px;
+    font-weight: 760;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    margin: 0;
+    max-width: 760px;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(42px, 7vw, 92px);
+    font-weight: 500;
+    line-height: 0.92;
+    letter-spacing: 0;
+  }
+
+  .hero-lead {
+    max-width: 720px;
+    margin: 24px 0 0;
+    color: var(--muted);
+    font-size: 18px;
+    line-height: 1.7;
+  }
+
+  .query-console {
+    padding: 24px;
+    border: 1px solid var(--ink);
+    background: var(--ink);
+    color: var(--surface);
+    box-shadow: var(--shadow);
+  }
+
+  .console-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 18px;
+    color: #dfe9e5;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .status-pill {
+    padding: 5px 9px;
+    border: 1px solid rgba(255, 253, 248, 0.24);
+    color: #e9d5b2;
+    font-size: 12px;
+  }
+
+  .form-field {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .form-field label {
+    color: #b7c7c1;
+    font-size: 13px;
+  }
+
+  textarea,
+  select {
+    width: 100%;
+    border: 1px solid rgba(255, 253, 248, 0.24);
+    border-radius: 0;
+    background: #101a16;
+    color: var(--surface);
+    font: inherit;
+  }
+
+  textarea {
+    min-height: 138px;
+    padding: 14px;
+    resize: vertical;
+    line-height: 1.55;
+  }
+
+  select {
+    padding: 12px 14px;
+  }
+
+  .run-button {
+    width: 100%;
+    border: 0;
+    padding: 14px 18px;
+    background: var(--amber);
+    color: #17120b;
+    cursor: pointer;
+    font-weight: 780;
+  }
+
+  .run-button:hover {
+    background: #d6933d;
+  }
+
+  .form-error {
+    margin: 0 0 14px;
+    padding: 10px 12px;
+    border-left: 3px solid var(--red);
+    background: rgba(169, 66, 58, 0.16);
+    color: #f7d8d4;
+    font-size: 13px;
+  }
+
+  .example-strip {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 18px;
+  }
+
+  .example-chip {
+    min-height: 76px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    background: rgba(255, 253, 248, 0.8);
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .dashboard {
+    margin-top: 22px;
+  }
+
+  .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  .metric {
+    min-height: 96px;
+    padding: 16px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+  }
+
+  .metric-label {
+    margin: 0 0 12px;
+    color: var(--muted);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .metric-value {
+    margin: 0;
+    color: var(--ink);
+    font-size: 24px;
+    font-weight: 760;
+    line-height: 1.1;
+    overflow-wrap: anywhere;
+  }
+
+  .workbench {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+    gap: 18px;
+  }
+
+  .surface {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+  }
+
+  .surface-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--line);
+    background: rgba(235, 230, 218, 0.55);
+  }
+
+  .surface-title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 760;
+  }
+
+  .surface-subtitle {
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .surface-body {
     padding: 20px;
   }
-  .trace-list {
-    padding-left: 0;
-    list-style: none;
-  }
-  .trace-list li {
-    border-left: 3px solid #005f73;
-    padding: 8px 0 8px 12px;
-    margin-bottom: 8px;
-    background: #f8f9fa;
-  }
+
   .answer-box {
     white-space: pre-wrap;
-    line-height: 1.6;
+    color: #23322d;
+    font-size: 15px;
+    line-height: 1.7;
   }
-  .evidence-table {
-    font-size: 14px;
+
+  .trace-list {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
   }
-  @media (max-width: 992px) {
-    .agent-layout {
+
+  .trace-list li {
+    padding: 9px 11px;
+    border-left: 3px solid var(--teal);
+    background: #f3f0e8;
+    color: #293832;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .badge-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .badge {
+    padding: 6px 9px;
+    border: 1px solid var(--line);
+    background: #f7f4ed;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .badge.good {
+    border-color: rgba(47, 125, 85, 0.35);
+    color: var(--green);
+  }
+
+  .badge.warn {
+    border-color: rgba(192, 122, 34, 0.35);
+    color: var(--amber);
+  }
+
+  .insight-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 0.8fr);
+    gap: 18px;
+    margin-top: 18px;
+  }
+
+  .bar-chart {
+    display: grid;
+    gap: 12px;
+  }
+
+  .bar-row {
+    display: grid;
+    grid-template-columns: minmax(120px, 0.48fr) minmax(160px, 1fr) 58px;
+    gap: 12px;
+    align-items: center;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .bar-track {
+    height: 12px;
+    border: 1px solid rgba(15, 107, 95, 0.18);
+    background: #eee8dc;
+  }
+
+  .bar-fill {
+    height: 100%;
+    min-width: 2px;
+    background: linear-gradient(90deg, var(--teal), var(--amber));
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 10px 8px;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .data-table th {
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .split-list {
+    display: grid;
+    gap: 12px;
+  }
+
+  .risk-item {
+    padding: 14px;
+    border: 1px solid var(--line);
+    background: #f9f6ef;
+  }
+
+  .risk-item h3 {
+    margin: 0 0 8px;
+    font-size: 16px;
+  }
+
+  .risk-item p,
+  .risk-item li {
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .raw-panel {
+    margin-top: 18px;
+  }
+
+  details {
+    border-top: 1px solid var(--line);
+  }
+
+  summary {
+    cursor: pointer;
+    padding: 14px 0;
+    color: var(--teal-dark);
+    font-weight: 720;
+  }
+
+  pre {
+    overflow: auto;
+    max-height: 380px;
+    padding: 14px;
+    background: #101a16;
+    color: #d8ece6;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 1120px) {
+    .agent-hero,
+    .workbench,
+    .insight-grid {
       grid-template-columns: 1fr;
+    }
+
+    .metric-grid,
+    .example-strip {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 720px) {
+    .hero-copy,
+    .query-console,
+    .surface-body,
+    .surface-header {
+      padding: 18px;
+    }
+
+    .metric-grid,
+    .example-strip {
+      grid-template-columns: 1fr;
+    }
+
+    .bar-row {
+      grid-template-columns: 1fr;
+      gap: 6px;
     }
   }
 </style>
 
-<div class="agent-layout">
-  <section class="agent-panel">
+<div class="agent-hero">
+  <section class="hero-copy">
+    <p class="eyebrow">Explainable Bond Analysis Agent</p>
     <h1>BondLens AI</h1>
-    <p class="lead">Explainable Bond Analysis Agent</p>
-    <p class="text-muted">优先使用 AkShare 实时债券行情，失败时先使用最近实时快照，再降级到本地 Excel 样本。非投资建议，仅用于学习和研究。</p>
+    <p class="hero-lead">面向中文债券市场的证据驱动分析工作台：实时 AkShare 优先，实时快照兜底，本地 Excel 保底；每个回答都展示工具轨迹、数据证据、风险解释、LLM guardrail 和非投资建议边界。</p>
+    <div class="example-strip" aria-label="Example questions">
+      <div class="example-chip">当前样本收益率分布是什么样？</div>
+      <div class="example-chip">按收益率列出最高的前5只债券</div>
+      <div class="example-chip">搜索23附息国债26并给出收益率分析</div>
+      <div class="example-chip">有没有收益率异常的债券？</div>
+    </div>
+  </section>
 
-    <form method="post" class="mb-4">
-      <div class="form-group">
+  <section class="query-console">
+    <div class="console-title">
+      <span>Agent Console</span>
+      <span class="status-pill">Live / Snapshot / Static</span>
+    </div>
+    {% if form_error %}
+      <p class="form-error">{{ form_error }}</p>
+    {% endif %}
+    <form method="post">
+      <div class="form-field">
         <label for="question">自然语言问题</label>
-        <textarea id="question" name="question" class="form-control" rows="4"
-                  placeholder="例如：找出收益率最高的债券，并说明是否有异常收益率样本。">{{ question }}</textarea>
+        <textarea id="question" name="question" placeholder="例如：找出收益率最高的债券，并说明是否有异常收益率样本。">{{ question }}</textarea>
       </div>
-      <div class="form-group">
+      <div class="form-field">
         <label for="data_mode">数据源模式</label>
-        <select id="data_mode" name="data_mode" class="form-control">
+        <select id="data_mode" name="data_mode">
           <option value="auto" {% if data_mode == 'auto' %}selected{% endif %}>Auto: 实时优先，失败后使用快照/本地备用</option>
           <option value="live" {% if data_mode == 'live' %}selected{% endif %}>Live: AkShare 实时债券行情</option>
           <option value="static" {% if data_mode == 'static' %}selected{% endif %}>Static: 本地 Excel 备用样本</option>
         </select>
       </div>
-      <button class="btn btn-primary" type="submit">运行 Agent</button>
+      <button class="run-button" type="submit">运行 Agent</button>
     </form>
-
-    {% if result %}
-      <h2>Final Answer</h2>
-      <div class="agent-panel answer-box">{{ result.final_answer }}</div>
-    {% endif %}
   </section>
-
-  <aside class="agent-panel">
-    <h2>Tool Trace</h2>
-    {% if result %}
-      <ul class="trace-list">
-        {% for item in result.tool_trace %}
-          <li>{{ item }}</li>
-        {% endfor %}
-      </ul>
-      <h3>Planner</h3>
-      <pre>{{ result.plan | tojson(indent=2) }}</pre>
-      <p class="badge badge-secondary">LLM: {{ result.llm_status }}</p>
-      <p class="badge badge-warning">LLM Guardrail: {{ result.llm_guardrail.status }}</p>
-      <p class="badge badge-light">Final: {{ result.final_answer_source }}</p>
-      <p class="badge badge-info">Evidence: {{ result.evidence_quality.level }} / {{ result.evidence_quality.score }}</p>
-      {% if result.llm_error %}
-        <p class="text-muted">{{ result.llm_error }}</p>
-      {% endif %}
-      {% if result.llm_guardrail.status == 'failed' %}
-        <p class="text-muted">{{ result.llm_guardrail.summary }}</p>
-      {% endif %}
-    {% else %}
-      <p class="text-muted">提交问题后展示每一步工具调用。</p>
-    {% endif %}
-  </aside>
 </div>
 
 {% if result %}
-  <section class="agent-panel mt-4">
-    <h2>Data Source</h2>
-    <div class="row">
-      <div class="col-md-6">
-        <p><strong>{{ result.data_source.source_name }}</strong></p>
-        <p>请求模式：{{ result.data_source.requested_mode }}；实际模式：{{ result.data_source.runtime_mode }}；样本行数：{{ result.data_source.row_count }}；有效收益率记录：{{ result.data_source.valid_yield_count }}</p>
-        {% if result.data_source.fetched_at %}
-          <p>获取时间：{{ result.data_source.fetched_at }}</p>
-        {% endif %}
-        {% if result.data_source.fallback_reason %}
-          <p class="text-muted">实时数据降级原因：{{ result.data_source.fallback_reason }}</p>
-        {% endif %}
-        {% if result.data_source.storage %}
-          <p class="text-muted">存储位置：{{ result.data_source.storage }}</p>
-        {% endif %}
-      </div>
-      <div class="col-md-6">
-        <p>Provider：{{ result.data_source.provider }}</p>
-        <p class="text-muted">实时快照和本地 Excel 均为备用数据源；旧本科爬虫仅保留在本科毕设分支。</p>
-      </div>
-    </div>
-
-    <h2>Risk Explanation Layer</h2>
-    <div class="row">
-      {% for item in result.risk_explanations %}
-        <div class="col-md-6 mb-3">
-          <h3>{{ item.title }}</h3>
-          <p>{{ item.summary }}</p>
-          <ul>
-            {% for point in item.watch_points %}
-              <li>{{ point }}</li>
-            {% endfor %}
-          </ul>
-        </div>
+  <section class="dashboard">
+    <div class="metric-grid">
+      {% for metric in view.metrics %}
+        <article class="metric">
+          <p class="metric-label">{{ metric.label }}</p>
+          <p class="metric-value">{{ metric.value }}</p>
+        </article>
       {% endfor %}
     </div>
 
-    <h2>Evidence Quality</h2>
-    <p><strong>{{ result.evidence_quality.level }}</strong>，评分 {{ result.evidence_quality.score }}/100。</p>
-    <p>{{ result.evidence_quality.summary }}</p>
-    <pre>{{ result.evidence_quality.coverage | tojson(indent=2) }}</pre>
+    <div class="workbench">
+      <section class="surface">
+        <div class="surface-header">
+          <div>
+            <h2 class="surface-title">Final Answer</h2>
+            <p class="surface-subtitle">{{ result.disclaimer }}</p>
+          </div>
+          <div class="badge-row">
+            <span class="badge good">Evidence {{ result.evidence_quality.level }} / {{ result.evidence_quality.score }}</span>
+            <span class="badge">Final {{ result.final_answer_source }}</span>
+          </div>
+        </div>
+        <div class="surface-body answer-box">{{ result.final_answer }}</div>
+      </section>
 
-    <h2>LLM Guardrail</h2>
-    <p>状态：{{ result.llm_guardrail.status }}；最终答案来源：{{ result.final_answer_source }}。</p>
-    <p>数字检查：{{ result.llm_guardrail.numeric_status }}；风险语言检查：{{ result.llm_guardrail.language_status }}。</p>
-    <p>{{ result.llm_guardrail.summary }}</p>
-    {% if result.llm_guardrail.unsupported_numbers %}
-      <h3>Unsupported Numbers</h3>
-      <pre>{{ result.llm_guardrail.unsupported_numbers | tojson(indent=2) }}</pre>
-    {% endif %}
-    {% if result.llm_guardrail.unsafe_phrases %}
-      <h3>Unsafe Risk Language</h3>
-      <pre>{{ result.llm_guardrail.unsafe_phrases | tojson(indent=2) }}</pre>
-    {% endif %}
-
-    <h2>Data Evidence</h2>
-    <div class="row">
-      <div class="col-md-6">
-        <h3>Market Summary</h3>
-        {% if result.data_evidence.market %}
-          <pre>{{ result.data_evidence.market.yield_summary | tojson(indent=2) }}</pre>
-        {% else %}
-          <p class="text-muted">本次计划未调用市场概览工具。</p>
-        {% endif %}
-      </div>
-      <div class="col-md-6">
-        <h3>Outliers</h3>
-        {% if result.data_evidence.outliers %}
-          <p>异常样本数量：{{ result.data_evidence.outliers.outlier_count }}</p>
-          <pre>{{ result.data_evidence.outliers.metadata | tojson(indent=2) }}</pre>
-        {% else %}
-          <p class="text-muted">本次计划未调用异常检测工具。</p>
-        {% endif %}
-      </div>
+      <aside class="surface">
+        <div class="surface-header">
+          <div>
+            <h2 class="surface-title">Tool Trace</h2>
+            <p class="surface-subtitle">Planner and tool calls used for this answer.</p>
+          </div>
+        </div>
+        <div class="surface-body">
+          <ul class="trace-list">
+            {% for item in result.tool_trace %}
+              <li>{{ item }}</li>
+            {% endfor %}
+          </ul>
+          <div class="badge-row">
+            <span class="badge">Intent {{ result.plan.intent }}</span>
+            <span class="badge">LLM {{ result.llm_status }}</span>
+            <span class="badge {% if result.llm_guardrail.status == 'passed' %}good{% else %}warn{% endif %}">Guardrail {{ result.llm_guardrail.status }}</span>
+          </div>
+        </div>
+      </aside>
     </div>
 
-    {% if result.data_evidence.comparison %}
-      <h3>Bond vs Market</h3>
-      <pre>{{ result.data_evidence.comparison | tojson(indent=2) }}</pre>
-    {% endif %}
-
-    <h3>Top Ranked Bonds</h3>
-    {% if result.data_evidence.ranking %}
-      <div class="table-responsive">
-        <table class="table table-sm table-striped evidence-table">
-          <thead>
-            <tr>
-              <th>债券简称</th>
-              <th>待偿期</th>
-              <th>收益率(%)</th>
-              <th>成交量(亿元)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for bond in result.data_evidence.ranking.records %}
-              <tr>
-                <td>{{ bond['债券简称'] }}</td>
-                <td>{{ bond['待偿期'] }}</td>
-                <td>{{ bond['收盘到期收益率(%)'] }}</td>
-                <td>{{ bond['交易量(亿元)'] }}</td>
-              </tr>
+    <div class="insight-grid">
+      <section class="surface">
+        <div class="surface-header">
+          <div>
+            <h2 class="surface-title">Market Evidence</h2>
+            <p class="surface-subtitle">{{ result.data_source.source_name }} · {{ result.data_source.runtime_mode }} · {{ result.data_source.row_count }} rows</p>
+          </div>
+        </div>
+        <div class="surface-body">
+          <div class="metric-grid">
+            {% for metric in view.market_summary %}
+              <article class="metric">
+                <p class="metric-label">{{ metric.label }}</p>
+                <p class="metric-value">{{ metric.value }}</p>
+              </article>
             {% endfor %}
-          </tbody>
-        </table>
+          </div>
+
+          <h3 class="surface-title">Yield Distribution</h3>
+          {% if view.yield_bars %}
+            <div class="bar-chart">
+              {% for bar in view.yield_bars %}
+                <div class="bar-row">
+                  <span>{{ bar.label }}</span>
+                  <span class="bar-track"><span class="bar-fill" style="width: {{ bar.width }}%;"></span></span>
+                  <span>{{ bar.count }}</span>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="surface-subtitle">本次计划未调用市场概览工具。</p>
+          {% endif %}
+
+          {% if result.data_source.fallback_reason or result.data_source.storage %}
+            <details class="raw-panel">
+              <summary>Data Source Detail</summary>
+              {% if result.data_source.fallback_reason %}
+                <p class="surface-subtitle">实时数据降级原因：{{ result.data_source.fallback_reason }}</p>
+              {% endif %}
+              {% if result.data_source.storage %}
+                <p class="surface-subtitle">存储位置：{{ result.data_source.storage }}</p>
+              {% endif %}
+            </details>
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="surface">
+        <div class="surface-header">
+          <div>
+            <h2 class="surface-title">LLM Guardrail</h2>
+            <p class="surface-subtitle">Numeric and unsafe investment-language checks.</p>
+          </div>
+        </div>
+        <div class="surface-body">
+          <div class="badge-row">
+            <span class="badge">Status {{ result.llm_guardrail.status }}</span>
+            <span class="badge">Numeric {{ result.llm_guardrail.numeric_status }}</span>
+            <span class="badge">Language {{ result.llm_guardrail.language_status }}</span>
+          </div>
+          <p class="surface-subtitle">{{ result.llm_guardrail.summary }}</p>
+          {% if result.llm_error %}
+            <p class="surface-subtitle">{{ result.llm_error }}</p>
+          {% endif %}
+          {% if result.llm_guardrail.unsupported_numbers %}
+            <details>
+              <summary>Unsupported Numbers</summary>
+              <pre>{{ result.llm_guardrail.unsupported_numbers | tojson(indent=2) }}</pre>
+            </details>
+          {% endif %}
+          {% if result.llm_guardrail.unsafe_phrases %}
+            <details>
+              <summary>Unsafe Risk Language</summary>
+              <pre>{{ result.llm_guardrail.unsafe_phrases | tojson(indent=2) }}</pre>
+            </details>
+          {% endif %}
+        </div>
+      </section>
+    </div>
+
+    <div class="insight-grid">
+      <section class="surface">
+        <div class="surface-header">
+          <div>
+            <h2 class="surface-title">Top Ranked Bonds</h2>
+            <p class="surface-subtitle">The table is evidence, not a buy list.</p>
+          </div>
+        </div>
+        <div class="surface-body">
+          {% if view.ranking_records %}
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>债券简称</th>
+                  <th>待偿期</th>
+                  <th>收益率</th>
+                  <th>成交量</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for bond in view.ranking_records %}
+                  <tr>
+                    <td>{{ bond['债券简称'] }}</td>
+                    <td>{{ bond['待偿期'] }}</td>
+                    <td>{{ bond['收盘到期收益率(%)'] }}</td>
+                    <td>{{ bond['交易量(亿元)'] }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <p class="surface-subtitle">本次计划未调用排序工具。</p>
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="surface">
+        <div class="surface-header">
+          <div>
+            <h2 class="surface-title">Risk Explanation Layer</h2>
+            <p class="surface-subtitle">Retrieved fixed-income context used to frame the answer.</p>
+          </div>
+        </div>
+        <div class="surface-body split-list">
+          {% for item in result.risk_explanations %}
+            <article class="risk-item">
+              <h3>{{ item.title }}</h3>
+              <p>{{ item.summary }}</p>
+              <ul>
+                {% for point in item.watch_points %}
+                  <li>{{ point }}</li>
+                {% endfor %}
+              </ul>
+            </article>
+          {% endfor %}
+        </div>
+      </section>
+    </div>
+
+    <section class="surface raw-panel">
+      <div class="surface-header">
+        <div>
+          <h2 class="surface-title">Evidence Console</h2>
+          <p class="surface-subtitle">{{ result.evidence_quality.summary }}</p>
+        </div>
       </div>
-    {% else %}
-      <p class="text-muted">本次计划未调用排序工具。</p>
-    {% endif %}
+      <div class="surface-body">
+        {% if view.outlier_records %}
+          <h3 class="surface-title">Yield Outliers</h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>债券简称</th>
+                <th>收益率</th>
+                <th>异常分数</th>
+                <th>成交量</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for bond in view.outlier_records %}
+                <tr>
+                  <td>{{ bond['债券简称'] }}</td>
+                  <td>{{ bond['收盘到期收益率(%)'] }}</td>
+                  <td>{{ bond.outlier_score }}</td>
+                  <td>{{ bond['交易量(亿元)'] }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% endif %}
+        {% if result.data_evidence.comparison %}
+          <details>
+            <summary>Bond vs Market</summary>
+            <pre>{{ result.data_evidence.comparison | tojson(indent=2) }}</pre>
+          </details>
+        {% endif %}
+        <details>
+          <summary>Planner JSON</summary>
+          <pre>{{ result.plan | tojson(indent=2) }}</pre>
+        </details>
+        <details>
+          <summary>Evidence Quality JSON</summary>
+          <pre>{{ result.evidence_quality | tojson(indent=2) }}</pre>
+        </details>
+        <details>
+          <summary>Data Evidence JSON</summary>
+          <pre>{{ result.data_evidence | tojson(indent=2) }}</pre>
+        </details>
+      </div>
+    </section>
   </section>
 {% endif %}
 {% endblock %}

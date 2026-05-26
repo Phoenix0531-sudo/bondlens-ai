@@ -5,7 +5,11 @@ def test_agent_pages_smoke():
     client = app.test_client()
 
     assert client.get("/").status_code == 302
-    assert client.get("/agent?data_mode=static").status_code == 200
+    response = client.get("/agent?data_mode=static")
+
+    assert response.status_code == 200
+    assert b"Agent Console" in response.data
+    assert b"Evidence Console" not in response.data
 
 
 def test_agent_api_smoke():
@@ -23,6 +27,17 @@ def test_agent_api_smoke():
     assert payload["risk_explanations"]
     assert payload["evidence_quality"]["decision_confidence"] == "low"
     assert payload["used_llm"] is False
+
+
+def test_agent_api_rejects_invalid_data_mode():
+    client = app.test_client()
+
+    response = client.post("/api/agent/query", json={"question": "test", "data_mode": "bad"})
+
+    assert response.status_code == 400
+    payload = response.get_json()
+    assert payload["allowed_data_modes"] == ["auto", "live", "static"]
+    assert "Unsupported data_mode" in payload["error"]
 
 
 def test_agent_api_handles_regex_special_character_search():

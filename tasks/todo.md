@@ -231,3 +231,32 @@
 - `docker compose up -d --build`: `/agent` returned HTTP 200, `/api/agent/query` returned HTTP 200, healthcheck was healthy.
 - `docker compose down`: completed.
 - GitHub Actions CI run `26438378150`: passed on `main` for commit `62e38ee`.
+
+# Portfolio Interface and Repository Facade Todo
+
+## Plan
+
+- [x] Add repository facade files: license, contributing guide, security policy, code of conduct, issue templates, pull request template, and Dependabot config.
+- [x] Add a static GitHub Pages project page under `docs/index.html`.
+- [x] Upgrade `/agent` from a simple form/report page into a dashboard-style analysis workbench.
+- [x] Add visual evidence blocks for metrics, yield distribution, ranking table, outlier table, data source detail, and LLM guardrail state.
+- [x] Add API validation for invalid `data_mode`.
+- [ ] Push and verify CI.
+- [ ] Try to enable GitHub Pages and `main` branch protection.
+
+## Success Criteria
+
+- Repository community files are present and linked from README.
+- `/agent` remains usable without external frontend assets.
+- UI exposes the Agent's evidence and safety boundary more clearly than the previous single report layout.
+- Invalid API `data_mode` returns HTTP 400 with allowed modes.
+- GitHub Pages has a static portfolio entry point, even before final screenshots are added.
+
+## Review
+
+- `python -m ruff check .`: passed.
+- `python -m pytest -q --cache-clear -o cache_dir=.tmp/pytest-cache --basetemp .tmp/pytest-ui-facade`: passed, 37 tests.
+- `python evals/run_agent_evals.py`: passed, 10/10 cases.
+- `python evals/run_red_team_evals.py`: passed, 3/3 red-team cases.
+- Browser smoke on `http://localhost:5057/agent?data_mode=static`: form rendered, sample question submitted, Evidence Console, Yield Distribution, Top Ranked Bonds, and LLM Guardrail sections rendered.
+- `docker build -t bondlens-ai:ui-facade .`: passed.

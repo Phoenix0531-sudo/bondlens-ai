@@ -1,0 +1,45 @@
+name: Bug report
+description: Report a reproducible problem in BondLens AI
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What went wrong?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include the question, data mode, and command used.
+      placeholder: |
+        1. Run ...
+        2. Ask ...
+        3. See ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      render: shell
+  - type: dropdown
+    id: data-mode
+    attributes:
+      label: Data mode
+      options:
+        - auto
+        - live
+        - static
+        - not sure
+    validations:
+      required: true

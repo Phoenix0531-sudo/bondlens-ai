@@ -1,42 +1,128 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}{% endblock %}</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <style>
+        :root {
+            --ink: #17211d;
+            --muted: #62706b;
+            --line: #d8ded9;
+            --paper: #f5f3ee;
+            --surface: #fffdf8;
+            --surface-strong: #ebe6da;
+            --teal: #0f6b5f;
+            --teal-dark: #084c45;
+            --amber: #c07a22;
+            --red: #a9423a;
+            --green: #2f7d55;
+            --shadow: 0 18px 45px rgba(23, 33, 29, 0.09);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f8f9fa;
+            margin: 0;
+            color: var(--ink);
+            background:
+                linear-gradient(90deg, rgba(15, 107, 95, 0.07) 1px, transparent 1px),
+                linear-gradient(0deg, rgba(15, 107, 95, 0.05) 1px, transparent 1px),
+                var(--paper);
+            background-size: 36px 36px;
+            font-family: "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
         }
-        .navbar {
-            background-color: #000080;
+
+        a {
+            color: inherit;
         }
-        .navbar-brand, .nav-link {
-            color: white;
-            font-size: 18px;
-            font-weight: bold;
+
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            border-bottom: 1px solid rgba(216, 222, 217, 0.9);
+            background: rgba(255, 253, 248, 0.92);
+            backdrop-filter: blur(12px);
         }
-        .nav-link:hover {
-            color: #f0f0f0;
+
+        .topbar-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: min(1440px, calc(100% - 40px));
+            margin: 0 auto;
+            padding: 14px 0;
         }
-        .container {
-            margin-top: 30px;
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            font-weight: 750;
+            letter-spacing: 0;
+        }
+
+        .brand-mark {
+            display: grid;
+            width: 32px;
+            height: 32px;
+            place-items: center;
+            border: 1px solid var(--ink);
+            background: var(--ink);
+            color: var(--surface);
+            font-size: 13px;
+        }
+
+        .topnav {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .topnav a {
+            text-decoration: none;
+        }
+
+        .page-shell {
+            width: min(1440px, calc(100% - 40px));
+            margin: 0 auto;
+            padding: 28px 0 56px;
+        }
+
+        @media (max-width: 760px) {
+            .topbar-inner,
+            .page-shell {
+                width: min(100% - 24px, 1440px);
+            }
+
+            .topnav {
+                display: none;
+            }
         }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg">
-        <a class="navbar-brand" href="/">BondLens AI</a>
-        <div class="collapse navbar-collapse">
-            <ul class="navbar-nav ml-auto">
-                <li class="nav-item">
-                    <a class="nav-link" href="/agent">BondLens AI</a>
-                </li>
-            </ul>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="brand" href="/">
+                <span class="brand-mark">BL</span>
+                <span>BondLens AI</span>
+            </a>
+            <nav class="topnav" aria-label="Primary">
+                <a href="/agent">Agent</a>
+                <a href="https://github.com/Phoenix0531-sudo/bondlens-ai">GitHub</a>
+                <a href="https://github.com/Phoenix0531-sudo/bondlens-ai/actions/workflows/ci.yml">CI</a>
+            </nav>
         </div>
-    </nav>
-    <div class="container">
+    </header>
+    <main class="page-shell">
         {% block content %}{% endblock %}
-    </div>
+    </main>
 </body>
 </html>
