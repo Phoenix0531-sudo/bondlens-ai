@@ -2,6 +2,8 @@
 
 **Explainable Bond Analysis Agent**
 
+[English](README.md) | [中文](README.zh-CN.md)
+
 BondLens AI is a lightweight, evidence-grounded analysis agent for Chinese bond market sample data. It turns natural-language questions into local Python tool calls, then returns a structured answer with tool trace, data evidence, risk notes, and limitations.
 
 > Non-investment advice. For learning, research, and portfolio demonstration only.
@@ -14,9 +16,18 @@ This project started as a 2024 undergraduate thesis project: a Flask-based bond 
 
 - Legacy branch: `legacy-thesis-2024`
 - Legacy tag: `thesis-submission-2024-04-24`
-- Modern AI branch: `modern-ai-bond-agent`
+- Current branch: `main`
 
 The current branch upgrades the thesis project into an AI Agent / LLM Application / AI Engineer portfolio project while keeping the historical origin visible.
+
+## Repository Structure
+
+This repository intentionally keeps two long-lived branches:
+
+- `main`: the modern BondLens AI portfolio project
+- `legacy-thesis-2024`: the original undergraduate thesis version
+
+The legacy tag `thesis-submission-2024-04-24` points to the same preserved thesis-era commit.
 
 ## Why This Is An Agent, Not A Chatbot
 
@@ -244,9 +255,9 @@ data/testdata.xlsx
 
 The agent does not invent issuer ratings, credit events, macro views, or investment recommendations. Old crawler files remain historical context, but the current Agent path uses local static data only.
 
-## Modern Branch Cleanup
+## Modern Project Cleanup
 
-The modern branch removes obvious IDE metadata and unreferenced legacy static dumps such as offline Angular docs and scraped `static/subject` pages. This is safe because:
+The `main` branch removes obvious IDE metadata and unreferenced legacy static dumps such as offline Angular docs and scraped `static/subject` pages. This is safe because:
 
 - `legacy-thesis-2024` and `thesis-submission-2024-04-24` preserve the original repository state.
 - Current Flask templates and static files do not reference the removed paths.
