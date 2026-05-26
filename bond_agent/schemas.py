@@ -39,6 +39,7 @@ class DataSourceProfile(FlexibleModel):
     row_count: int
     valid_yield_count: int
     columns: list[str]
+    maturity_coverage: dict[str, Any] | None = None
     active_live_feed: bool
     active_live_snapshot: bool = False
     provider: str

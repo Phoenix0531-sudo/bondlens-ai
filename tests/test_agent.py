@@ -274,3 +274,27 @@ def test_agent_can_use_live_bond_feed_without_openai(monkeypatch):
     assert result["data_source"]["active_live_feed"] is True
     assert result["evidence_quality"]["data_freshness"] == "live_fetch"
     assert "25国开20" in result["final_answer"]
+
+
+def test_agent_live_feed_enriches_known_bond_maturity(monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
+    def fake_fetcher():
+        return pd.DataFrame(
+            {
+                "债券简称": ["23附息国债26"],
+                "成交净价": [107.51],
+                "最新收益率": [1.6025],
+                "涨跌": [-0.5],
+                "加权收益率": [1.608],
+                "交易量": [23.1214],
+            }
+        )
+
+    result = BondAnalystAgent(data_mode="live", live_fetcher=fake_fetcher).answer("搜索23附息国债26并给出收益率分析")
+    record = result["data_evidence"]["search"]["records"][0]
+
+    assert record["待偿期"] is not None
+    assert record["待偿期(年)"] is not None
+    assert result["data_source"]["maturity_coverage"]["filled_count"] == 1
+    assert "待偿期 None" not in result["final_answer"]

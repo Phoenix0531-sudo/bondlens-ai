@@ -39,6 +39,7 @@ def test_agent_page_localizes_result_for_chinese():
     assert "问题：" in html
     assert "风险解释层" in html
     assert "工具轨迹" in html
+    assert "跳过：LLM 未启用" in html
 
 
 def test_healthz():

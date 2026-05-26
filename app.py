@@ -153,11 +153,14 @@ def _build_agent_view_model(result: dict, lang: str = "zh") -> dict:
     outliers = evidence.get("outliers") or {}
     summary = market.get("yield_summary") or {}
     volume = market.get("volume_summary") or {}
+    data_source = result.get("data_source", {})
+    maturity_coverage = data_source.get("maturity_coverage") or {}
 
     return {
         "metrics": [
-            _metric("Data Source", "数据源", _localized_status(result.get("data_source", {}).get("runtime_mode", "unknown"), lang), lang),
-            _metric("Rows", "样本行数", result.get("data_source", {}).get("row_count"), lang),
+            _metric("Data Source", "数据源", _localized_status(data_source.get("runtime_mode", "unknown"), lang), lang),
+            _metric("Rows", "样本行数", data_source.get("row_count"), lang),
+            _metric("Maturity Coverage", "期限覆盖率", _coverage_ratio_text(maturity_coverage), lang),
             _metric("Median Yield", "收益率中位数", summary.get("median"), lang, "%"),
             _metric("Evidence Score", "证据评分", result.get("evidence_quality", {}).get("score"), lang, "/100"),
             _metric("Final Source", "最终来源", _localized_status(result.get("final_answer_source", "unknown"), lang), lang),
@@ -194,8 +197,11 @@ def _build_agent_view_model(result: dict, lang: str = "zh") -> dict:
         "intent_label": _intent_label(result.get("plan", {}).get("intent"), lang),
         "llm_status_label": _localized_status(result.get("llm_status"), lang),
         "guardrail_status_label": _localized_status(result.get("llm_guardrail", {}).get("status"), lang),
+        "guardrail_numeric_label": _localized_status(result.get("llm_guardrail", {}).get("numeric_status"), lang),
+        "guardrail_language_label": _localized_status(result.get("llm_guardrail", {}).get("language_status"), lang),
         "evidence_level_label": _localized_status(result.get("evidence_quality", {}).get("level"), lang),
-        "data_source_subtitle": _data_source_subtitle(result.get("data_source", {}), lang),
+        "final_source_label": _localized_status(result.get("final_answer_source", "unknown"), lang),
+        "data_source_subtitle": _data_source_subtitle(data_source, lang),
     }
 
 
@@ -260,6 +266,12 @@ def _format_display_answer(result: dict, lang: str) -> str:
         if data_source.get("fallback_reason"):
             lines.append(f"- 实时数据降级原因：{data_source.get('fallback_reason')}")
         lines.append(f"- 样本行数：{data_source.get('row_count')}，有效收益率记录：{data_source.get('valid_yield_count')}")
+        if data_source.get("maturity_coverage"):
+            coverage = data_source["maturity_coverage"]
+            lines.append(
+                f"- 期限覆盖率：{_coverage_ratio_text(coverage)}，"
+                f"已补全 {coverage.get('filled_count')} 条，缺失 {coverage.get('missing_count')} 条"
+            )
 
     if market:
         lines.append(f"- 样本数量：{market.get('sample_count', 0)}")
@@ -273,7 +285,7 @@ def _format_display_answer(result: dict, lang: str) -> str:
         lines.append(f"- 检索命中数量：{search.get('match_count', 0)}")
         for index, record in enumerate(search.get("records", [])[:5], start=1):
             lines.append(
-                f"  {index}. {record.get('债券简称')} | 待偿期 {record.get('待偿期')} | "
+                f"  {index}. {record.get('债券简称')} | 待偿期 {_display_maturity(record)} | "
                 f"收益率 {record.get('收盘到期收益率(%)')}% | 成交量 {record.get('交易量(亿元)')} 亿元"
             )
     if comparison:
@@ -328,6 +340,9 @@ def _localize_trace_item(item: str, lang: str) -> str:
     replacements = {
         "-> data_source": "-> 数据源",
         "-> planner": "-> 规划器",
+        "-> llm_guardrail": "-> LLM 护栏",
+        "skipped: llm_disabled": "跳过：LLM 未启用",
+        "skipped: llm_failed": "跳过：LLM 调用失败",
         "intent=": "意图=",
         "mode=": "模式=",
         "source=": "来源=",
@@ -382,7 +397,25 @@ def _localized_status(value: object, lang: str) -> str:
     if value is None:
         return "N/A"
     if lang == "en":
-        return str(value)
+        mapping_en = {
+            "live": "Live",
+            "live_snapshot": "Live snapshot",
+            "static_sample": "Local sample",
+            "static_fallback": "Local fallback",
+            "deterministic_fallback": "Rule fallback",
+            "success": "Success",
+            "failed": "Failed",
+            "disabled": "Disabled",
+            "passed": "Passed",
+            "not_run": "Not triggered",
+            "high": "High",
+            "medium": "Medium",
+            "low": "Low",
+            "live_fetch": "Live fetch",
+            "cached_live_snapshot": "Cached snapshot",
+            "static_snapshot": "Static snapshot",
+        }
+        return mapping_en.get(str(value), str(value))
     mapping = {
         "live": "实时行情",
         "live_snapshot": "实时快照",
@@ -393,7 +426,7 @@ def _localized_status(value: object, lang: str) -> str:
         "failed": "失败",
         "disabled": "未启用",
         "passed": "通过",
-        "not_run": "未运行",
+        "not_run": "未触发",
         "high": "高",
         "medium": "中",
         "low": "低",
@@ -420,6 +453,20 @@ def _llm_guardrail_summary(guardrail: dict, lang: str) -> str:
     if status == "passed":
         return "LLM 输出已通过数值一致性和风险语言检查。"
     return "LLM 输出未通过可信度检查，页面使用规则兜底报告作为最终答案。"
+
+
+def _coverage_ratio_text(coverage: dict) -> str:
+    ratio = coverage.get("coverage_ratio")
+    if ratio is None:
+        return "N/A"
+    return f"{round(float(ratio) * 100, 1)}%"
+
+
+def _display_maturity(record: dict) -> str:
+    maturity = record.get("待偿期")
+    if maturity is not None and str(maturity).strip():
+        return str(maturity)
+    return "当前数据源暂缺"
 
 
 def _data_source_subtitle(data_source: dict, lang: str) -> str:

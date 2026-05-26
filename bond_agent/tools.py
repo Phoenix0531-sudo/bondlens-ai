@@ -296,13 +296,13 @@ def _build_analysis(
         if search.get("criteria", {}).get("name") is None:
             preview_names = "、".join(str(item.get(BOND_NAME)) for item in search["records"][:5])
             return [
-                f"检索条件命中 {search.get('match_count')} 条记录。",
-                f"前 {min(5, len(search['records']))} 条样本包括：{preview_names}。",
-                "该结果是筛选列表，不代表投资优先级；如需单券分析，请提供具体债券简称。",
+            f"检索条件命中 {search.get('match_count')} 条记录。",
+            f"前 {min(5, len(search['records']))} 条样本包括：{preview_names}。",
+            "该结果是筛选列表，不代表投资优先级；如需单券分析，请提供具体债券简称。",
             ]
         analysis = [
             f"检索命中 {search.get('match_count')} 条记录，优先分析 {record.get(BOND_NAME)}。",
-            f"{record.get(BOND_NAME)} 的待偿期为 {record.get(MATURITY)}，收盘净价 {record.get(PRICE)} 元，收益率 {record.get(YIELD)}%，成交量 {record.get(VOLUME)} 亿元。",
+            f"{record.get(BOND_NAME)} 的待偿期为 {_display_maturity(record)}，收盘净价 {record.get(PRICE)} 元，收益率 {record.get(YIELD)}%，成交量 {record.get(VOLUME)} 亿元。",
         ]
         if comparison.get("found"):
             analysis.append(
@@ -329,7 +329,7 @@ def _build_analysis(
         first = records[0]
         return [
             f"本次按 {ranked.get('rank_by')} 排序，返回前 {len(records)} 条样本。",
-            f"排名首位为 {first.get(BOND_NAME)}，收益率 {first.get(YIELD)}%，成交量 {first.get(VOLUME)} 亿元，待偿期 {first.get(MATURITY)}。",
+            f"排名首位为 {first.get(BOND_NAME)}，收益率 {first.get(YIELD)}%，成交量 {first.get(VOLUME)} 亿元，待偿期 {_display_maturity(first)}。",
             "排序结果只反映当前样本字段，不代表投资优先级。",
         ]
 
@@ -359,3 +359,10 @@ def _build_analysis(
     if outliers.get("records"):
         analysis.append(f"异常检测发现 {outliers.get('outlier_count')} 条收益率异常样本。")
     return analysis
+
+
+def _display_maturity(record: dict) -> str:
+    maturity = record.get(MATURITY)
+    if maturity is not None and str(maturity).strip():
+        return str(maturity)
+    return "当前数据源暂缺"

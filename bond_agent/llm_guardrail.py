@@ -29,6 +29,7 @@ def assess_llm_faithfulness(text: str | None, report: dict) -> dict:
             "unsafe_phrases": [],
             "supported_number_count": 0,
             "checked_number_count": 0,
+            "applicability": "skipped_no_llm_output",
             "summary": "LLM output was not available, so faithfulness checks were not run.",
         }
 
@@ -65,6 +66,7 @@ def assess_llm_faithfulness(text: str | None, report: dict) -> dict:
         "unsafe_phrases": unsafe_phrases[:10],
         "supported_number_count": supported_count,
         "checked_number_count": len(extracted_numbers),
+        "applicability": "checked_llm_output",
         "summary": summary,
     }
 

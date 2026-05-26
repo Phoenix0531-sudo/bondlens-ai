@@ -23,26 +23,33 @@ MATURITY_YEARS = "待偿期(年)"
 NUMERIC_COLUMNS = [PRICE, YIELD, WEIGHTED_YIELD, VOLUME]
 REQUIRED_COLUMNS = [BOND_NAME, MATURITY, PRICE, YIELD, WEIGHTED_YIELD, VOLUME]
 LIVE_CHANGE_BP = "涨跌(BP)"
+MATURITY_SOURCE = "待偿期来源"
 DATA_MODES = {"auto", "live", "static"}
+STATIC_SAMPLE_DATE_RE = re.compile(r"(\d{4}-\d{2}-\d{2})")
 
 
 def parse_maturity_to_years(value: object) -> float | None:
     if pd.isna(value):
         return None
     text = str(value).strip().upper()
-    match = re.fullmatch(r"([0-9]+(?:\.[0-9]+)?)([YMD]?)", text)
-    if not match:
+    parts = text.split("+")
+    parsed = [_parse_maturity_part(part) for part in parts]
+    if any(part is None for part in parsed):
+        return None
+    return sum(float(part) for part in parsed)
+
+
+def infer_static_sample_date(path: str | Path = DEFAULT_DATA_PATH):
+    data_path = Path(path)
+    try:
+        header = pd.read_excel(data_path, header=None, nrows=1).astype(str).to_string()
+    except Exception:
         return None
 
-    amount = float(match.group(1))
-    unit = match.group(2) or "Y"
-    if unit == "Y":
-        return amount
-    if unit == "M":
-        return amount / 12
-    if unit == "D":
-        return amount / 365
-    return None
+    match = STATIC_SAMPLE_DATE_RE.search(header)
+    if not match:
+        return None
+    return datetime.strptime(match.group(1), "%Y-%m-%d").date()
 
 
 def load_bond_data(path: str | Path = DEFAULT_DATA_PATH) -> pd.DataFrame:
@@ -60,6 +67,7 @@ def load_bond_data(path: str | Path = DEFAULT_DATA_PATH) -> pd.DataFrame:
     df = df.dropna(subset=[BOND_NAME]).copy()
     df[BOND_NAME] = df[BOND_NAME].astype(str).str.strip()
     df[MATURITY_YEARS] = df[MATURITY].map(parse_maturity_to_years)
+    df[MATURITY_SOURCE] = "source_field"
 
     for column in NUMERIC_COLUMNS:
         df[column] = pd.to_numeric(df[column], errors="coerce")
@@ -67,20 +75,25 @@ def load_bond_data(path: str | Path = DEFAULT_DATA_PATH) -> pd.DataFrame:
     return df
 
 
-def load_live_bond_data(fetcher=None, cache_path: str | Path | None = None, write_cache: bool = True) -> pd.DataFrame:
+def load_live_bond_data(
+    fetcher=None,
+    cache_path: str | Path | None = None,
+    write_cache: bool = True,
+    security_master: pd.DataFrame | None = None,
+) -> pd.DataFrame:
     if fetcher is None:
         import akshare as ak
 
         fetcher = ak.bond_spot_deal
 
     raw_df = fetcher()
-    df = normalize_live_bond_data(raw_df)
+    df = normalize_live_bond_data(raw_df, security_master=security_master)
     if write_cache:
         save_live_snapshot(df, cache_path=cache_path)
     return df
 
 
-def normalize_live_bond_data(raw_df: pd.DataFrame) -> pd.DataFrame:
+def normalize_live_bond_data(raw_df: pd.DataFrame, security_master: pd.DataFrame | None = None) -> pd.DataFrame:
     required = ["债券简称", "成交净价", "最新收益率", "加权收益率", "交易量"]
     missing = [column for column in required if column not in raw_df.columns]
     if missing:
@@ -96,7 +109,54 @@ def normalize_live_bond_data(raw_df: pd.DataFrame) -> pd.DataFrame:
     if "涨跌" in raw_df.columns:
         df[LIVE_CHANGE_BP] = pd.to_numeric(raw_df["涨跌"], errors="coerce")
     df[MATURITY_YEARS] = None
-    return df[df[BOND_NAME] != ""].copy()
+    df[MATURITY_SOURCE] = None
+    df = df[df[BOND_NAME] != ""].copy()
+    return enrich_live_maturity_from_static_master(df, security_master=security_master)
+
+
+def enrich_live_maturity_from_static_master(
+    df: pd.DataFrame,
+    security_master: pd.DataFrame | None = None,
+    reference_date=None,
+    current_date=None,
+) -> pd.DataFrame:
+    if security_master is None:
+        try:
+            security_master = load_bond_data()
+        except Exception:
+            return df
+
+    required = {BOND_NAME, MATURITY, MATURITY_YEARS}
+    if not required.issubset(security_master.columns):
+        return df
+
+    reference_date = reference_date or infer_static_sample_date()
+    current_date = current_date or datetime.now(timezone.utc).date()
+    elapsed_years = _elapsed_years(reference_date, current_date)
+    maturity_by_name = (
+        security_master.dropna(subset=[BOND_NAME, MATURITY_YEARS])
+        .drop_duplicates(subset=[BOND_NAME])
+        .set_index(BOND_NAME)[[MATURITY, MATURITY_YEARS]]
+    )
+
+    enriched = df.copy()
+    for index, row in enriched.iterrows():
+        name = row.get(BOND_NAME)
+        if not name or name not in maturity_by_name.index:
+            continue
+        master_row = maturity_by_name.loc[name]
+        years = master_row[MATURITY_YEARS]
+        if pd.isna(years):
+            continue
+
+        adjusted_years = max(float(years) - elapsed_years, 0.0) if elapsed_years is not None else float(years)
+        enriched.at[index, MATURITY_YEARS] = round(adjusted_years, 4)
+        enriched.at[index, MATURITY] = _format_maturity(adjusted_years)
+        if reference_date:
+            enriched.at[index, MATURITY_SOURCE] = f"local_static_excel_adjusted_from_{reference_date.isoformat()}"
+        else:
+            enriched.at[index, MATURITY_SOURCE] = "local_static_excel_unadjusted"
+    return enriched
 
 
 def save_live_snapshot(df: pd.DataFrame, cache_path: str | Path | None = None) -> Path:
@@ -198,7 +258,8 @@ def _build_static_profile(
         "fallback_reason": fallback_reason,
         "row_count": int(len(df)),
         "valid_yield_count": int(df[YIELD].notna().sum()),
-        "columns": [BOND_NAME, MATURITY, PRICE, YIELD, WEIGHTED_YIELD, VOLUME],
+        "columns": [BOND_NAME, MATURITY, PRICE, YIELD, WEIGHTED_YIELD, VOLUME, MATURITY_SOURCE],
+        "maturity_coverage": _maturity_coverage(df),
         "active_live_feed": False,
         "active_live_snapshot": False,
         "provider": "repository",
@@ -237,7 +298,8 @@ def _build_live_profile(df: pd.DataFrame, requested_mode: str) -> dict:
         "fallback_reason": None,
         "row_count": int(len(df)),
         "valid_yield_count": int(df[YIELD].notna().sum()),
-        "columns": [BOND_NAME, MATURITY, PRICE, YIELD, WEIGHTED_YIELD, VOLUME, LIVE_CHANGE_BP],
+        "columns": [BOND_NAME, MATURITY, PRICE, YIELD, WEIGHTED_YIELD, VOLUME, LIVE_CHANGE_BP, MATURITY_SOURCE],
+        "maturity_coverage": _maturity_coverage(df),
         "active_live_feed": True,
         "active_live_snapshot": False,
         "legacy_crawler": {
@@ -246,7 +308,8 @@ def _build_live_profile(df: pd.DataFrame, requested_mode: str) -> dict:
         },
         "limitations": [
             "Public live endpoint availability depends on third-party source stability and trading session.",
-            "bond_spot_deal does not provide maturity, issuer rating, credit events, or macro curve fields.",
+            "bond_spot_deal does not provide native maturity, issuer rating, credit events, or macro curve fields.",
+            "Maturity may be enriched from the local static sample when a bond name can be matched.",
             "Use live results as market monitoring evidence, not investment advice.",
         ],
     }
@@ -277,7 +340,8 @@ def _build_snapshot_profile(
         "fallback_reason": fallback_reason,
         "row_count": int(len(df)),
         "valid_yield_count": int(df[YIELD].notna().sum()),
-        "columns": [BOND_NAME, MATURITY, PRICE, YIELD, WEIGHTED_YIELD, VOLUME, LIVE_CHANGE_BP],
+        "columns": [BOND_NAME, MATURITY, PRICE, YIELD, WEIGHTED_YIELD, VOLUME, LIVE_CHANGE_BP, MATURITY_SOURCE],
+        "maturity_coverage": _maturity_coverage(df),
         "active_live_feed": False,
         "active_live_snapshot": True,
         "legacy_crawler": {
@@ -304,8 +368,53 @@ def _cache_max_age_hours(value: float | None) -> float | None:
     return float(configured) if configured else 24.0
 
 
+def _parse_maturity_part(text: str) -> float | None:
+    match = re.fullmatch(r"([0-9]+(?:\.[0-9]+)?)([YMD]?)", text.strip())
+    if not match:
+        return None
+
+    amount = float(match.group(1))
+    unit = match.group(2) or "Y"
+    if unit == "Y":
+        return amount
+    if unit == "M":
+        return amount / 12
+    if unit == "D":
+        return amount / 365
+    return None
+
+
+def _elapsed_years(reference_date, current_date) -> float | None:
+    if not reference_date or not current_date:
+        return None
+    elapsed_days = max((current_date - reference_date).days, 0)
+    return elapsed_days / 365
+
+
+def _format_maturity(years: float) -> str:
+    if years >= 1:
+        return f"{years:.2f}Y"
+    return f"{max(0, round(years * 365))}D"
+
+
+def _maturity_coverage(df: pd.DataFrame) -> dict:
+    filled = int(df[MATURITY_YEARS].notna().sum()) if MATURITY_YEARS in df.columns else 0
+    source_counts = {}
+    if MATURITY_SOURCE in df.columns:
+        source_counts = {
+            str(source): int(count)
+            for source, count in df[MATURITY_SOURCE].dropna().value_counts().items()
+        }
+    return {
+        "filled_count": filled,
+        "missing_count": int(len(df) - filled),
+        "coverage_ratio": round(filled / len(df), 4) if len(df) else 0,
+        "source_counts": source_counts,
+    }
+
+
 def records_from_frame(df: pd.DataFrame, limit: int = 10) -> list[dict]:
-    display_columns = [BOND_NAME, MATURITY, MATURITY_YEARS, PRICE, YIELD, WEIGHTED_YIELD, VOLUME, LIVE_CHANGE_BP]
+    display_columns = [BOND_NAME, MATURITY, MATURITY_YEARS, MATURITY_SOURCE, PRICE, YIELD, WEIGHTED_YIELD, VOLUME, LIVE_CHANGE_BP]
     available_columns = [column for column in display_columns if column in df.columns]
     records = df[available_columns].head(limit).where(pd.notnull(df[available_columns]), None)
     return records.to_dict(orient="records")

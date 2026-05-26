@@ -101,6 +101,8 @@ class BondAnalystAgent:
         )
         if llm_result["status"] == "success":
             tool_trace.append(f"-> llm_guardrail(status={llm_guardrail['status']})")
+        else:
+            tool_trace.append(f"-> llm_guardrail(skipped: llm_{llm_result['status']})")
 
         use_llm_final = llm_result["status"] == "success" and llm_guardrail["status"] == "passed"
         final_answer = llm_result["text"] if use_llm_final else fallback_answer
@@ -236,6 +238,12 @@ class BondAnalystAgent:
             if data_source.get("fallback_reason"):
                 lines.append(f"- 实时数据降级原因: {data_source.get('fallback_reason')}")
             lines.append(f"- 样本行数: {data_source.get('row_count')}，有效收益率记录: {data_source.get('valid_yield_count')}")
+            if data_source.get("maturity_coverage"):
+                coverage = data_source["maturity_coverage"]
+                ratio = round(float(coverage.get("coverage_ratio", 0)) * 100, 1)
+                lines.append(
+                    f"- 期限覆盖率: {ratio}%，已补全 {coverage.get('filled_count')} 条，缺失 {coverage.get('missing_count')} 条"
+                )
 
         if market:
             lines.append(f"- 样本数量: {market.get('sample_count', 0)}")
@@ -250,7 +258,7 @@ class BondAnalystAgent:
             lines.append(f"- 检索命中数量: {search.get('match_count', 0)}")
             for index, record in enumerate(search.get("records", [])[:5], start=1):
                 lines.append(
-                    f"  {index}. {record.get('债券简称')} | 待偿期 {record.get('待偿期')} | "
+                    f"  {index}. {record.get('债券简称')} | 待偿期 {self._display_maturity(record)} | "
                     f"收益率 {record.get('收盘到期收益率(%)')}% | 成交量 {record.get('交易量(亿元)')} 亿元"
                 )
         if comparison:
@@ -299,3 +307,9 @@ class BondAnalystAgent:
     def _compact_args(self, params: dict) -> str:
         visible = [f"{key}={value}" for key, value in params.items() if key != "limit"]
         return ", ".join(visible) if visible else "no filters"
+
+    def _display_maturity(self, record: dict) -> str:
+        maturity = record.get("待偿期")
+        if maturity is not None and str(maturity).strip():
+            return str(maturity)
+        return "当前数据源暂缺"

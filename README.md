@@ -53,6 +53,7 @@ If `OPENAI_API_KEY` is not set, the project still runs and uses deterministic fa
 - Tool trace: each planner/tool step is visible in the Web page and API response
 - Bond search by name, maturity, and yield range
 - Live data mode: AkShare `bond_spot_deal` current bond deal data
+- Live maturity enrichment: because `bond_spot_deal` does not provide native maturity, matched bonds are enriched from the local static sample and marked with maturity coverage metadata
 - Cached live snapshot mode: latest successful AkShare fetch is reused when the live endpoint temporarily fails
 - Local fallback mode: `data/testdata.xlsx` remains available for offline demos and deterministic tests
 - Market summary: sample count, yield distribution, volume statistics
@@ -108,6 +109,7 @@ User question: 搜索23附息国债26并给出收益率分析
 -> rank_bonds(by=yield, top_n=5)
 -> detect_yield_outliers(method=zscore, threshold=3.0)
 -> generate_bond_report()
+-> llm_guardrail(skipped: llm_disabled)
 -> final answer
 ```
 
@@ -307,7 +309,7 @@ Snapshot:      .tmp/bond_spot_deal_snapshot.csv
 Final fallback: data/testdata.xlsx
 ```
 
-AkShare documents `bond_spot_deal` as the ChinaMoney current bond deal market interface. The fields used by BondLens AI are bond name, clean price, latest yield, BP change, weighted yield, and trading volume.
+AkShare documents `bond_spot_deal` as the ChinaMoney current bond deal market interface. The native fields used by BondLens AI are bond name, clean price, latest yield, BP change, weighted yield, and trading volume. The live endpoint does not provide maturity, so BondLens AI enriches matched bond names from the local static sample and reports `maturity_coverage` in `data_source`.
 
 The default runtime mode is `auto`: fetch live data first, write the normalized result to a local CSV snapshot, and use that snapshot if a later live request fails. If both live fetch and snapshot fallback are unavailable or stale, the Agent falls back to the local workbook. The `/agent` page and API also support:
 

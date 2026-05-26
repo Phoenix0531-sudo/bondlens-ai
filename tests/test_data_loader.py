@@ -3,6 +3,8 @@ import pandas as pd
 from bond_agent.data_loader import (
     BOND_NAME,
     LIVE_CHANGE_BP,
+    MATURITY,
+    MATURITY_SOURCE,
     MATURITY_YEARS,
     PRICE,
     VOLUME,
@@ -30,6 +32,7 @@ def test_load_bond_data_reads_project_excel():
 def test_parse_maturity_to_years_handles_years_and_days():
     assert parse_maturity_to_years("9.68Y") == 9.68
     assert round(parse_maturity_to_years("364D"), 4) == round(364 / 365, 4)
+    assert round(parse_maturity_to_years("177D+2Y"), 4) == round(177 / 365 + 2, 4)
     assert parse_maturity_to_years("bad-data") is None
 
 
@@ -67,12 +70,34 @@ def test_load_live_bond_data_normalizes_akshare_columns(tmp_path):
     assert df[VOLUME].tolist() == [4.5, 8.0]
     assert df[LIVE_CHANGE_BP].tolist() == [-0.3, 1.2]
     assert MATURITY_YEARS in df.columns
+    assert MATURITY_SOURCE in df.columns
     assert cache_path.exists()
 
     cached_df, snapshot = load_live_snapshot(cache_path=cache_path)
 
     assert list(cached_df[BOND_NAME]) == ["25国开20", "26超长特别国债02"]
     assert snapshot["snapshot_path"] == cache_path
+
+
+def test_load_live_bond_data_enriches_matching_maturity_from_static_sample(tmp_path):
+    def fake_fetcher():
+        return pd.DataFrame(
+            {
+                "债券简称": ["23附息国债26"],
+                "成交净价": [107.51],
+                "最新收益率": [1.6025],
+                "涨跌": [-0.5],
+                "加权收益率": [1.608],
+                "交易量": [23.1214],
+            }
+        )
+
+    df = load_live_bond_data(fetcher=fake_fetcher, cache_path=tmp_path / "live_snapshot.csv")
+
+    assert df.iloc[0][BOND_NAME] == "23附息国债26"
+    assert pd.notna(df.iloc[0][MATURITY])
+    assert pd.notna(df.iloc[0][MATURITY_YEARS])
+    assert str(df.iloc[0][MATURITY_SOURCE]).startswith("local_static_excel_adjusted_from_")
 
 
 def test_resolve_bond_data_uses_live_profile_when_available(tmp_path):

@@ -151,7 +151,7 @@
 
   .metric-grid {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 12px;
     margin-bottom: 18px;
   }
@@ -463,7 +463,7 @@
           </div>
           <div class="badge-row">
             <span class="badge good" data-lang-zh="证据 {{ view.evidence_level_label }} / {{ result.evidence_quality.score }}" data-lang-en="Evidence {{ result.evidence_quality.level }} / {{ result.evidence_quality.score }}">证据 {{ view.evidence_level_label }} / {{ result.evidence_quality.score }}</span>
-            <span class="badge" data-lang-zh="最终 {{ view.metrics[4].value }}" data-lang-en="Final {{ result.final_answer_source }}">最终 {{ view.metrics[4].value }}</span>
+            <span class="badge" data-lang-zh="最终 {{ view.final_source_label }}" data-lang-en="Final {{ result.final_answer_source }}">最终 {{ view.final_source_label }}</span>
           </div>
         </div>
         <div class="surface-body answer-box" data-answer-target>{{ view.final_answer }}</div>
@@ -550,8 +550,8 @@
         <div class="surface-body">
           <div class="badge-row">
             <span class="badge" data-lang-zh="状态 {{ view.guardrail_status_label }}" data-lang-en="Status {{ result.llm_guardrail.status }}">状态 {{ view.guardrail_status_label }}</span>
-            <span class="badge" data-lang-zh="数值 {{ result.llm_guardrail.numeric_status | replace('not_run', '未运行') | replace('passed', '通过') | replace('failed', '失败') }}" data-lang-en="Numeric {{ result.llm_guardrail.numeric_status }}">数值 {{ result.llm_guardrail.numeric_status | replace('not_run', '未运行') | replace('passed', '通过') | replace('failed', '失败') }}</span>
-            <span class="badge" data-lang-zh="语言 {{ result.llm_guardrail.language_status | replace('not_run', '未运行') | replace('passed', '通过') | replace('failed', '失败') }}" data-lang-en="Language {{ result.llm_guardrail.language_status }}">语言 {{ result.llm_guardrail.language_status | replace('not_run', '未运行') | replace('passed', '通过') | replace('failed', '失败') }}</span>
+            <span class="badge" data-lang-zh="数值 {{ view.guardrail_numeric_label }}" data-lang-en="Numeric {{ result.llm_guardrail.numeric_status }}">数值 {{ view.guardrail_numeric_label }}</span>
+            <span class="badge" data-lang-zh="语言 {{ view.guardrail_language_label }}" data-lang-en="Language {{ result.llm_guardrail.language_status }}">语言 {{ view.guardrail_language_label }}</span>
           </div>
           <p class="surface-subtitle" data-lang-zh="{{ view.llm_guardrail_summary_by_lang.zh }}" data-lang-en="{{ view.llm_guardrail_summary_by_lang.en }}">{{ view.llm_guardrail_summary }}</p>
           {% if result.llm_error %}
@@ -596,7 +596,13 @@
                 {% for bond in view.ranking_records %}
                   <tr>
                     <td>{{ bond['债券简称'] }}</td>
-                    <td>{{ bond['待偿期'] }}</td>
+                    <td>
+                      {% if bond['待偿期'] %}
+                        {{ bond['待偿期'] }}
+                      {% else %}
+                        <span data-lang-zh="暂缺" data-lang-en="N/A">暂缺</span>
+                      {% endif %}
+                    </td>
                     <td>{{ bond['收盘到期收益率(%)'] }}</td>
                     <td>{{ bond['交易量(亿元)'] }}</td>
                   </tr>
