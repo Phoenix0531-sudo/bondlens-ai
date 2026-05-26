@@ -199,6 +199,7 @@ OPENAI_API_KEY=
 OPENAI_MODEL=gpt-5.4-mini
 OPENAI_BASE_URL=
 OPENAI_API_STYLE=auto
+OPENAI_TIMEOUT_SECONDS=20
 BOND_DATA_MODE=auto
 BOND_LIVE_CACHE_PATH=
 BOND_LIVE_CACHE_MAX_AGE_HOURS=24
@@ -209,6 +210,7 @@ BOND_LIVE_CACHE_MAX_AGE_HOURS=24
 - `OPENAI_MODEL`: configurable model for evidence-constrained answer enhancement.
 - `OPENAI_BASE_URL`: optional OpenAI-compatible endpoint. For local Ollama, use `http://127.0.0.1:11434/v1`.
 - `OPENAI_API_STYLE`: `auto`, `responses`, or `chat`. Keep `auto` for normal use; local endpoints usually use chat completions.
+- `OPENAI_TIMEOUT_SECONDS`: optional LLM request timeout. Defaults to `20` so slow local models safely fall back instead of timing out the web server.
 - `BOND_DATA_MODE`: `auto`, `live`, or `static`. `auto` tries AkShare first, then cached live snapshot, then local Excel fallback.
 - `BOND_LIVE_CACHE_PATH`: optional path for the AkShare snapshot CSV. Defaults to `.tmp/bond_spot_deal_snapshot.csv`.
 - `BOND_LIVE_CACHE_MAX_AGE_HOURS`: maximum accepted snapshot age before static fallback is used. Defaults to `24`.

@@ -199,6 +199,7 @@ OPENAI_API_KEY=
 OPENAI_MODEL=gpt-5.4-mini
 OPENAI_BASE_URL=
 OPENAI_API_STYLE=auto
+OPENAI_TIMEOUT_SECONDS=20
 BOND_DATA_MODE=auto
 BOND_LIVE_CACHE_PATH=
 BOND_LIVE_CACHE_MAX_AGE_HOURS=24
@@ -209,6 +210,7 @@ BOND_LIVE_CACHE_MAX_AGE_HOURS=24
 - `OPENAI_MODEL`：用于基于证据增强回答的可配置模型。
 - `OPENAI_BASE_URL`：可选的 OpenAI-compatible endpoint。本地 Ollama 可使用 `http://127.0.0.1:11434/v1`。
 - `OPENAI_API_STYLE`：`auto`、`responses` 或 `chat`。普通使用保持 `auto`；本地模型通常走 chat completions。
+- `OPENAI_TIMEOUT_SECONDS`：可选 LLM 请求超时，默认 `20` 秒；本地模型太慢时会安全回退，不会拖到 Web 服务超时。
 - `BOND_DATA_MODE`：`auto`、`live` 或 `static`。`auto` 会优先请求 AkShare，然后使用实时快照，最后使用本地 Excel 备用数据。
 - `BOND_LIVE_CACHE_PATH`：可选的 AkShare 快照 CSV 路径，默认是 `.tmp/bond_spot_deal_snapshot.csv`。
 - `BOND_LIVE_CACHE_MAX_AGE_HOURS`：实时快照最大可接受年龄，超过后使用静态兜底，默认 `24` 小时。

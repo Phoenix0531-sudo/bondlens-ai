@@ -43,6 +43,7 @@ OPENAI_API_KEY=
 OPENAI_MODEL=gpt-5.4-mini
 OPENAI_BASE_URL=
 OPENAI_API_STYLE=auto
+OPENAI_TIMEOUT_SECONDS=20
 BOND_DATA_MODE=auto
 BOND_LIVE_CACHE_PATH=
 BOND_LIVE_CACHE_MAX_AGE_HOURS=24
@@ -51,6 +52,7 @@ BOND_LIVE_CACHE_MAX_AGE_HOURS=24
 - `BOND_DATA_MODE=auto` tries AkShare live data first, then cached live snapshot, then the local Excel fallback.
 - `OPENAI_API_KEY` is optional. Without it, deterministic fallback output is used.
 - `OPENAI_BASE_URL` can point to an OpenAI-compatible local server such as Ollama.
+- `OPENAI_TIMEOUT_SECONDS` defaults to `20` so slow local models fail closed into deterministic fallback rather than timing out gunicorn.
 
 ### Ollama From Docker
 
@@ -121,6 +123,7 @@ OPENAI_API_KEY=
 OPENAI_MODEL=gpt-5.4-mini
 OPENAI_BASE_URL=
 OPENAI_API_STYLE=auto
+OPENAI_TIMEOUT_SECONDS=20
 BOND_DATA_MODE=auto
 BOND_LIVE_CACHE_PATH=
 BOND_LIVE_CACHE_MAX_AGE_HOURS=24
@@ -129,6 +132,7 @@ BOND_LIVE_CACHE_MAX_AGE_HOURS=24
 - `BOND_DATA_MODE=auto` 会先请求 AkShare 实时数据，然后使用实时快照，最后使用本地 Excel 兜底。
 - `OPENAI_API_KEY` 是可选项。为空时使用确定性 fallback 输出。
 - `OPENAI_BASE_URL` 可以指向 Ollama 等 OpenAI-compatible 本地服务。
+- `OPENAI_TIMEOUT_SECONDS` 默认 `20` 秒，本地模型过慢时会安全回退，而不是拖到 gunicorn 超时。
 
 ### Docker 连接 Ollama
 

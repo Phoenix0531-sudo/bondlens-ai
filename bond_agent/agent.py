@@ -165,7 +165,8 @@ class BondAnalystAgent:
     def _create_openai_client(self, api_key: str, base_url: str | None = None):
         from openai import OpenAI
 
-        kwargs = {"api_key": api_key}
+        timeout = float(os.environ.get("OPENAI_TIMEOUT_SECONDS", "20"))
+        kwargs = {"api_key": api_key, "timeout": timeout}
         if base_url:
             kwargs["base_url"] = base_url
         return OpenAI(**kwargs)

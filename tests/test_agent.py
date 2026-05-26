@@ -214,6 +214,14 @@ def test_agent_local_openai_compatible_base_url_uses_chat_without_api_key(monkey
     assert "非投资建议，仅用于学习和研究" in result["final_answer"]
 
 
+def test_agent_openai_client_uses_configured_timeout(monkeypatch):
+    monkeypatch.setenv("OPENAI_TIMEOUT_SECONDS", "3.5")
+
+    client = BondAnalystAgent()._create_openai_client("test-key", base_url="http://127.0.0.1:11434/v1")
+
+    assert client.timeout == 3.5
+
+
 def test_agent_rejects_llm_output_with_unsupported_numeric_claim(monkeypatch):
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.setenv("OPENAI_BASE_URL", "http://127.0.0.1:11434/v1")
