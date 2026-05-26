@@ -54,6 +54,9 @@ jobs:
       - name: Run agent evals
         run: python evals/run_agent_evals.py
 
+      - name: Run red-team evals
+        run: python evals/run_red_team_evals.py
+
   docker:
     name: Docker build
     runs-on: ubuntu-latest

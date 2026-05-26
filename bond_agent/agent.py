@@ -143,6 +143,8 @@ class BondAnalystAgent:
                 "You are a fixed-income analysis assistant. Use only the provided JSON evidence. "
                 "Copy numeric evidence exactly when citing it. Do not create new percentages, ranges, "
                 "ratings, issuer details, market facts, or investment advice. "
+                "Do not recommend buying, selling, adding position, guaranteed returns, risk-free status, "
+                "or very safe conclusions. "
                 "The yield_distribution values are counts, not percentages. "
                 "If the evidence is insufficient, say so directly. "
                 f"Always include this disclaimer in Chinese: {DISCLAIMER}"

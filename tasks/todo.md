@@ -203,3 +203,30 @@
 - `docker build -t bondlens-ai:guardrail .`: passed.
 - Local Ollama smoke with `qwen2.5:1.5b`: LLM call succeeded; guardrail rejected one generated answer and safely used `deterministic_fallback`.
 - GitHub Actions CI run `26437352781`: passed on `main` for commit `f75e8d9`.
+
+# Risk Language, Live Snapshot Cache, Red-team Eval Todo
+
+## Plan
+
+- [x] Extend LLM guardrail from numeric-only checks to numeric plus unsafe investment-language checks.
+- [x] Add live AkShare snapshot cache so live failures fall back to the most recent successful live fetch before using the static Excel sample.
+- [x] Add red-team evals for buy/sell advice, return guarantees, and overconfident safety wording.
+- [x] Surface the new guardrail and snapshot state in the Web UI and bilingual README.
+- [ ] Push and verify CI.
+
+## Success Criteria
+
+- LLM outputs containing phrases such as `建议买入`, `非常安全`, `收益保证`, or `risk-free` cannot become the final answer.
+- `auto`/`live` data mode uses this order: AkShare live fetch -> cached AkShare snapshot -> `data/testdata.xlsx`.
+- Red-team evals fail if the deterministic answer starts giving investment recommendations or guaranteed-return language.
+- CI runs unit tests, normal agent evals, red-team evals, and Docker build.
+
+## Review
+
+- `python -m ruff check .`: passed.
+- `python -m pytest -q --cache-clear -o cache_dir=.tmp/pytest-cache --basetemp .tmp/pytest-risk-snapshot-redteam`: passed, 36 tests.
+- `python evals/run_agent_evals.py`: passed, 10/10 cases.
+- `python evals/run_red_team_evals.py`: passed, 3/3 red-team cases.
+- `docker build -t bondlens-ai:risk-snapshot-redteam .`: passed.
+- `docker compose up -d --build`: `/agent` returned HTTP 200, `/api/agent/query` returned HTTP 200, healthcheck was healthy.
+- `docker compose down`: completed.

@@ -6,7 +6,7 @@
 
 ![CI](https://github.com/Phoenix0531-sudo/bondlens-ai/actions/workflows/ci.yml/badge.svg)
 
-BondLens AI is a lightweight, evidence-grounded analysis agent for Chinese bond market data. It uses AkShare live bond market data by default, falls back to the preserved local Excel sample when live access is unavailable, and returns a structured answer with tool trace, data evidence, risk notes, and limitations.
+BondLens AI is a lightweight, evidence-grounded analysis agent for Chinese bond market data. It uses AkShare live bond market data by default, falls back to the latest cached live snapshot when live access is unavailable, then falls back to the preserved local Excel sample if no usable snapshot exists. Each answer returns a structured trace with data evidence, risk notes, guardrail status, and limitations.
 
 > Non-investment advice. For learning, research, and portfolio demonstration only.
 
@@ -34,13 +34,13 @@ No release tag is kept because the original thesis branch is the preserved histo
 
 BondLens AI does not ask an LLM to guess financial answers. The agent follows a small deterministic loop:
 
-1. **Data resolver** loads AkShare live bond data first and falls back to `data/testdata.xlsx` when needed.
+1. **Data resolver** loads AkShare live bond data first, then a cached live snapshot, then `data/testdata.xlsx` when needed.
 2. **Planner** classifies user intent and chooses tools.
 3. **Tools** run local Python analysis over the active data frame.
 4. **Evidence** is attached to the response as structured JSON.
 5. **Report** is generated from the evidence, with risks and limitations.
 6. **Optional LLM** can polish the answer only after the local evidence exists. It supports OpenAI and OpenAI-compatible local endpoints such as Ollama.
-7. **LLM guardrail** checks numeric claims against structured evidence and falls back to the deterministic report if unsupported numbers appear.
+7. **LLM guardrail** checks numeric claims and unsafe investment-language patterns against structured evidence and falls back to the deterministic report if the LLM output is not safe to use.
 
 If `OPENAI_API_KEY` is not set, the project still runs and uses deterministic fallback output.
 
@@ -50,6 +50,7 @@ If `OPENAI_API_KEY` is not set, the project still runs and uses deterministic fa
 - Tool trace: each planner/tool step is visible in the Web page and API response
 - Bond search by name, maturity, and yield range
 - Live data mode: AkShare `bond_spot_deal` current bond deal data
+- Cached live snapshot mode: latest successful AkShare fetch is reused when the live endpoint temporarily fails
 - Local fallback mode: `data/testdata.xlsx` remains available for offline demos and deterministic tests
 - Market summary: sample count, yield distribution, volume statistics
 - Ranking by yield, volume, maturity, or price
@@ -58,8 +59,8 @@ If `OPENAI_API_KEY` is not set, the project still runs and uses deterministic fa
 - Data source profile: requested mode, actual runtime mode, provider, fetch time, fallback reason, and legacy crawler boundary
 - Retrieval-augmented risk explanations for fixed-income concepts
 - Evidence quality scoring with confidence and freshness labels
-- LLM faithfulness guardrail for numeric evidence checks and safe fallback
-- Agent eval suite for repeatable behavior checks
+- LLM faithfulness guardrail for numeric evidence checks, unsafe investment-language checks, and safe fallback
+- Agent eval and red-team eval suites for repeatable behavior and safety checks
 - Docker deployment with gunicorn
 
 ## Agent Workflow
@@ -85,9 +86,9 @@ flowchart TD
     M --> N{OPENAI_API_KEY or OPENAI_BASE_URL}
     N -->|missing| O[Deterministic fallback]
     N -->|set| P[OpenAI or local LLM enhancement]
-    P --> Q[LLM numeric faithfulness guardrail]
+    P --> Q[LLM numeric and language guardrail]
     Q -->|passed| R[LLM final answer]
-    Q -->|failed| S[Deterministic fallback answer]
+    Q -->|numeric or language failure| S[Deterministic fallback answer]
 ```
 
 ## Tool Trace Example
@@ -124,15 +125,17 @@ User question: 搜索23附息国债26并给出收益率分析
 ├── bond_agent/
 │   ├── agent.py                 # Agent orchestration and LLM fallback status
 │   ├── planner.py               # Rule-based intent planner
-│   ├── data_loader.py           # AkShare live loading, Excel fallback, maturity normalization
+│   ├── data_loader.py           # AkShare live loading, snapshot cache, Excel fallback
 │   ├── risk_knowledge.py        # Local fixed-income risk explanation retrieval
 │   ├── evidence_quality.py      # Evidence scoring, freshness, and confidence labels
-│   ├── llm_guardrail.py         # Numeric faithfulness checks for LLM answers
+│   ├── llm_guardrail.py         # Numeric and risk-language checks for LLM answers
 │   └── tools.py                 # Local bond analysis tools
 ├── data/testdata.xlsx           # Static bond sample data
 ├── evals/
 │   ├── agent_eval_cases.yml     # Behavior cases
-│   └── run_agent_evals.py       # Local eval runner
+│   ├── red_team_eval_cases.yml  # Safety boundary cases
+│   ├── run_agent_evals.py       # Local eval runner
+│   └── run_red_team_evals.py    # Red-team eval runner
 ├── templates/agent.html         # Agent UI
 ├── tests/                       # Unit and smoke tests
 ├── Dockerfile
@@ -182,6 +185,8 @@ OPENAI_MODEL=gpt-5.4-mini
 OPENAI_BASE_URL=
 OPENAI_API_STYLE=auto
 BOND_DATA_MODE=auto
+BOND_LIVE_CACHE_PATH=
+BOND_LIVE_CACHE_MAX_AGE_HOURS=24
 ```
 
 - `SECRET_KEY`: Flask session secret.
@@ -189,7 +194,9 @@ BOND_DATA_MODE=auto
 - `OPENAI_MODEL`: configurable model for evidence-constrained answer enhancement.
 - `OPENAI_BASE_URL`: optional OpenAI-compatible endpoint. For local Ollama, use `http://127.0.0.1:11434/v1`.
 - `OPENAI_API_STYLE`: `auto`, `responses`, or `chat`. Keep `auto` for normal use; local endpoints usually use chat completions.
-- `BOND_DATA_MODE`: `auto`, `live`, or `static`. `auto` tries AkShare first and uses the local Excel fallback if live data fails.
+- `BOND_DATA_MODE`: `auto`, `live`, or `static`. `auto` tries AkShare first, then cached live snapshot, then local Excel fallback.
+- `BOND_LIVE_CACHE_PATH`: optional path for the AkShare snapshot CSV. Defaults to `.tmp/bond_spot_deal_snapshot.csv`.
+- `BOND_LIVE_CACHE_MAX_AGE_HOURS`: maximum accepted snapshot age before static fallback is used. Defaults to `24`.
 
 Local Ollama smoke example:
 
@@ -220,7 +227,9 @@ The API response exposes safe LLM state:
   "llm_status": "disabled",
   "llm_error": null,
   "llm_guardrail": {
-    "status": "not_run"
+    "status": "not_run",
+    "numeric_status": "not_run",
+    "language_status": "not_run"
   }
 }
 ```
@@ -261,7 +270,7 @@ Key response fields:
 - `final_answer`: either the LLM answer if it passes guardrails, or the deterministic report
 - `final_answer_source`: `llm` or `deterministic_fallback`
 - `llm_enhanced_answer`: raw LLM answer kept for debugging when available
-- `llm_guardrail`: numeric faithfulness status, score, and unsupported numeric claims
+- `llm_guardrail`: numeric faithfulness status, unsafe risk-language status, score, unsupported numeric claims, and blocked phrases
 - `llm_status`: `disabled`, `success`, or `failed`
 
 ## Data Source Boundary
@@ -269,17 +278,17 @@ Key response fields:
 The current Agent path uses a live-first data strategy:
 
 ```text
-Primary: AkShare bond_spot_deal
-Target:  ChinaMoney bond market deal data
-Fallback: data/testdata.xlsx
+Primary:       AkShare bond_spot_deal
+Snapshot:      .tmp/bond_spot_deal_snapshot.csv
+Final fallback: data/testdata.xlsx
 ```
 
 AkShare documents `bond_spot_deal` as the ChinaMoney current bond deal market interface. The fields used by BondLens AI are bond name, clean price, latest yield, BP change, weighted yield, and trading volume.
 
-The default runtime mode is `auto`: fetch live data first, then fall back to the local workbook if the public endpoint is unavailable or returns an unexpected schema. The `/agent` page and API also support:
+The default runtime mode is `auto`: fetch live data first, write the normalized result to a local CSV snapshot, and use that snapshot if a later live request fails. If both live fetch and snapshot fallback are unavailable or stale, the Agent falls back to the local workbook. The `/agent` page and API also support:
 
 ```text
-auto   -> live first, local fallback
+auto   -> live first, cached snapshot second, local fallback third
 live   -> live source requested; fallback reason is shown if it degrades
 static -> local Excel only
 ```
@@ -291,6 +300,8 @@ data/testdata.xlsx
 ```
 
 The workbook contains more than 3,000 bond sample rows with fields such as bond name, maturity, clean price, closing yield, weighted yield, and trading volume. It is used for offline demos, deterministic CI, and fallback behavior.
+
+The live snapshot is intentionally stored under `.tmp/` by default and is not committed to Git. This keeps the repository clean while still making local demos resilient when the public endpoint is temporarily unavailable.
 
 The legacy crawler is preserved in `undergraduate-thesis-2024` as thesis-era historical code only. It targeted old CNSTOCK news pages, depended on MongoDB and thesis-era text-analysis modules, and is not present in the current `main` runtime. During repository verification on May 26, 2026, the old CNSTOCK HTTP endpoints returned `403 Forbidden` to automated requests, so this project does not present them as an active or reliable live data source.
 
@@ -315,7 +326,7 @@ Every Agent answer includes an `evidence_quality` object with:
 - `level`: low, medium, or high for the active evidence set
 - `analysis_confidence`: confidence in the descriptive analysis
 - `decision_confidence`: intentionally low because issuer rating, credit event, macro curve, and full security master data are not attached
-- `data_freshness`: `live_fetch` for AkShare runtime data or `static_snapshot` for local fallback/static mode
+- `data_freshness`: `live_fetch`, `cached_live_snapshot`, or `static_snapshot`
 - `coverage`: which evidence blocks were available
 - `penalties`: missing context that limits conclusions
 
@@ -327,12 +338,19 @@ Run deterministic behavior checks:
 python evals/run_agent_evals.py
 ```
 
+Run red-team safety checks:
+
+```bash
+python evals/run_red_team_evals.py
+```
+
 The eval suite checks:
 
 - expected planner intent
 - expected tools
 - required answer keywords
 - optional forbidden answer keywords
+- investment-advice and guaranteed-return boundary cases
 
 It does not call OpenAI.
 
@@ -355,6 +373,8 @@ Coverage includes:
 - bond-to-market comparison
 - concrete bond report behavior
 - LLM disabled/success/failed status with mocks
+- LLM numeric and unsafe risk-language guardrails
+- live snapshot cache fallback
 - Flask page/API smoke tests
 - eval case loading
 
@@ -363,7 +383,7 @@ Coverage includes:
 All financial conclusions are computed from the active data source shown in each response:
 
 ```text
-AkShare bond_spot_deal, or data/testdata.xlsx when static/fallback mode is active
+AkShare bond_spot_deal, the cached AkShare snapshot, or data/testdata.xlsx when static/fallback mode is active
 ```
 
 The agent does not invent issuer ratings, credit events, macro views, or investment recommendations. Legacy crawler code is preserved only in the thesis branch; the current `main` branch uses AkShare live data plus the local Excel fallback.
@@ -379,13 +399,13 @@ The `main` branch removes legacy login/database code, obsolete crawler code, old
 ## Interview Talking Points
 
 - **Tool calling design:** deterministic planner maps user intent to local Python tools.
-- **Live-first source design:** AkShare live data is the default, with a transparent static fallback for reliability.
+- **Live-first source design:** AkShare live data is the default, with cached live snapshot and static fallback layers for reliability.
 - **Evidence constraint:** final answers are generated from `data_evidence`, not free-form finance guessing.
 - **Local LLM compatibility:** OpenAI-compatible endpoints can exercise the LLM path without a paid API key.
-- **LLM guardrail:** numeric LLM claims are checked against structured evidence before they can become the final answer.
+- **LLM guardrail:** numeric claims and unsafe investment-language phrases are checked before an LLM answer can become final.
 - **Fallback design:** no API key required; OpenAI/local LLM path is optional and observable.
 - **Risk boundary:** output always includes limitations and non-investment-advice language.
-- **Eval method:** local eval cases test intent, tool selection, and answer constraints.
+- **Eval method:** local behavior evals and red-team evals test intent, tool selection, answer constraints, and safety boundaries.
 - **Dockerization:** gunicorn runtime, healthcheck, and reproducible dependency install.
 - **Legacy migration:** original thesis version preserved, modern branch cleaned for portfolio use.
 
@@ -394,7 +414,7 @@ The `main` branch removes legacy login/database code, obsolete crawler code, old
 - Add issuer ratings, bond master data, and curve context around the live market feed
 - Expand RAG from local snippets to document-backed retrieval
 - Add PDF/Markdown report export
-- Add richer agent evals for evidence consistency
+- Add richer evidence-consistency evals across live snapshots and static fallback
 - Add duration, convexity, credit spread, and liquidity buckets
 
 ## License

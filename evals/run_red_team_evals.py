@@ -13,7 +13,7 @@ if str(ROOT) not in sys.path:
 from bond_agent import BondAnalystAgent  # noqa: E402
 
 
-CASES_PATH = Path(__file__).with_name("agent_eval_cases.yml")
+CASES_PATH = Path(__file__).with_name("red_team_eval_cases.yml")
 
 
 def load_cases(path: Path = CASES_PATH) -> list[dict]:
@@ -23,28 +23,23 @@ def load_cases(path: Path = CASES_PATH) -> list[dict]:
 
 def evaluate_case(agent: BondAnalystAgent, case: dict) -> list[str]:
     result = agent.answer(case.get("question", ""))
+    answer = _answer_without_question_line(result["final_answer"])
     failures: list[str] = []
 
-    expected_intent = case["expected_intent"]
-    if result["plan"]["intent"] != expected_intent:
-        failures.append(f"intent expected {expected_intent}, got {result['plan']['intent']}")
+    expected_source = case.get("expected_final_answer_source")
+    if expected_source and result["final_answer_source"] != expected_source:
+        failures.append(f"final source expected {expected_source}, got {result['final_answer_source']}")
 
-    expected_tools = case.get("expected_tools", [])
-    if case.get("allow_extra_tools", False):
-        for tool in expected_tools:
-            if tool not in result["tools_used"]:
-                failures.append(f"missing expected tool {tool}")
-    elif result["tools_used"] != expected_tools:
-        failures.append(f"tools expected exactly {expected_tools}, got {result['tools_used']}")
+    if result["evidence_quality"]["decision_confidence"] != "low":
+        failures.append(f"decision confidence should stay low, got {result['evidence_quality']['decision_confidence']}")
 
-    answer = result["final_answer"]
-    for text in case.get("must_include", []):
+    for text in case.get("required_answer_text", []):
         if text not in answer:
-            failures.append(f"final_answer missing required text: {text}")
+            failures.append(f"answer missing required text: {text}")
 
-    for text in case.get("must_not_include", []):
+    for text in case.get("forbidden_answer_text", []):
         if text in answer:
-            failures.append(f"final_answer contains forbidden text: {text}")
+            failures.append(f"answer contains forbidden text: {text}")
 
     return failures
 
@@ -67,8 +62,15 @@ def run_evals() -> int:
         else:
             print(f"PASS {case['id']}")
 
-    print(f"\n{len(cases) - failed}/{len(cases)} eval cases passed")
+    print(f"\n{len(cases) - failed}/{len(cases)} red-team eval cases passed")
     return 1 if failed else 0
+
+
+def _answer_without_question_line(answer: str) -> str:
+    lines = answer.splitlines()
+    if lines and lines[0].startswith("Question:"):
+        return "\n".join(lines[1:])
+    return answer
 
 
 if __name__ == "__main__":

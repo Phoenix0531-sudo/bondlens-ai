@@ -135,6 +135,31 @@ class _FakeBadLocalClient:
     chat = _FakeBadChat()
 
 
+class _FakeAdviceChatMessage:
+    content = "建议买入这只债券。非投资建议，仅用于学习和研究。"
+
+
+class _FakeAdviceChatChoice:
+    message = _FakeAdviceChatMessage()
+
+
+class _FakeAdviceChatCompletion:
+    choices = [_FakeAdviceChatChoice()]
+
+
+class _FakeAdviceChatCompletions:
+    def create(self, **kwargs):
+        return _FakeAdviceChatCompletion()
+
+
+class _FakeAdviceChat:
+    completions = _FakeAdviceChatCompletions()
+
+
+class _FakeAdviceLocalClient:
+    chat = _FakeAdviceChat()
+
+
 def test_agent_llm_status_success(monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     monkeypatch.setattr(BondAnalystAgent, "_create_openai_client", lambda self, api_key, **kwargs: _FakeClient())
@@ -201,9 +226,30 @@ def test_agent_rejects_llm_output_with_unsupported_numeric_claim(monkeypatch):
     assert result["used_llm_in_final"] is False
     assert result["final_answer_source"] == "deterministic_fallback"
     assert result["llm_guardrail"]["status"] == "failed"
+    assert result["llm_guardrail"]["numeric_status"] == "failed"
+    assert result["llm_guardrail"]["language_status"] == "failed"
     assert result["llm_enhanced_answer"].startswith("样本中 99%")
     assert result["final_answer"].startswith("Question:")
     assert any(item["text"] == "99%" for item in result["llm_guardrail"]["unsupported_numbers"])
+    assert any(item["rule_id"] == "risk_free_claim" for item in result["llm_guardrail"]["unsafe_phrases"])
+
+
+def test_agent_rejects_llm_output_with_investment_advice_language(monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setenv("OPENAI_BASE_URL", "http://127.0.0.1:11434/v1")
+
+    monkeypatch.setattr(BondAnalystAgent, "_create_openai_client", lambda self, api_key, **kwargs: _FakeAdviceLocalClient())
+
+    result = BondAnalystAgent(data_mode="static").answer("搜索23附息国债26并给出收益率分析")
+
+    assert result["used_llm"] is True
+    assert result["used_llm_in_final"] is False
+    assert result["final_answer_source"] == "deterministic_fallback"
+    assert result["llm_guardrail"]["status"] == "failed"
+    assert result["llm_guardrail"]["numeric_status"] == "passed"
+    assert result["llm_guardrail"]["language_status"] == "failed"
+    assert any(item["rule_id"] == "buy_recommendation" for item in result["llm_guardrail"]["unsafe_phrases"])
+    assert result["final_answer"].startswith("Question:")
 
 
 def test_agent_can_use_live_bond_feed_without_openai(monkeypatch):

@@ -43,7 +43,7 @@
   <section class="agent-panel">
     <h1>BondLens AI</h1>
     <p class="lead">Explainable Bond Analysis Agent</p>
-    <p class="text-muted">优先使用 AkShare 实时债券行情，失败时降级到本地 Excel 样本。非投资建议，仅用于学习和研究。</p>
+    <p class="text-muted">优先使用 AkShare 实时债券行情，失败时先使用最近实时快照，再降级到本地 Excel 样本。非投资建议，仅用于学习和研究。</p>
 
     <form method="post" class="mb-4">
       <div class="form-group">
@@ -54,7 +54,7 @@
       <div class="form-group">
         <label for="data_mode">数据源模式</label>
         <select id="data_mode" name="data_mode" class="form-control">
-          <option value="auto" {% if data_mode == 'auto' %}selected{% endif %}>Auto: 实时优先，失败后使用本地备用</option>
+          <option value="auto" {% if data_mode == 'auto' %}selected{% endif %}>Auto: 实时优先，失败后使用快照/本地备用</option>
           <option value="live" {% if data_mode == 'live' %}selected{% endif %}>Live: AkShare 实时债券行情</option>
           <option value="static" {% if data_mode == 'static' %}selected{% endif %}>Static: 本地 Excel 备用样本</option>
         </select>
@@ -107,10 +107,13 @@
         {% if result.data_source.fallback_reason %}
           <p class="text-muted">实时数据降级原因：{{ result.data_source.fallback_reason }}</p>
         {% endif %}
+        {% if result.data_source.storage %}
+          <p class="text-muted">存储位置：{{ result.data_source.storage }}</p>
+        {% endif %}
       </div>
       <div class="col-md-6">
         <p>Provider：{{ result.data_source.provider }}</p>
-        <p class="text-muted">本地 Excel 仍作为备用数据源；旧本科爬虫仅保留在 legacy 分支。</p>
+        <p class="text-muted">实时快照和本地 Excel 均为备用数据源；旧本科爬虫仅保留在本科毕设分支。</p>
       </div>
     </div>
 
@@ -136,9 +139,15 @@
 
     <h2>LLM Guardrail</h2>
     <p>状态：{{ result.llm_guardrail.status }}；最终答案来源：{{ result.final_answer_source }}。</p>
+    <p>数字检查：{{ result.llm_guardrail.numeric_status }}；风险语言检查：{{ result.llm_guardrail.language_status }}。</p>
     <p>{{ result.llm_guardrail.summary }}</p>
     {% if result.llm_guardrail.unsupported_numbers %}
+      <h3>Unsupported Numbers</h3>
       <pre>{{ result.llm_guardrail.unsupported_numbers | tojson(indent=2) }}</pre>
+    {% endif %}
+    {% if result.llm_guardrail.unsafe_phrases %}
+      <h3>Unsafe Risk Language</h3>
+      <pre>{{ result.llm_guardrail.unsafe_phrases | tojson(indent=2) }}</pre>
     {% endif %}
 
     <h2>Data Evidence</h2>
