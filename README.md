@@ -41,6 +41,7 @@ BondLens AI does not ask an LLM to guess financial answers. The agent follows a 
 4. **Evidence** is attached to the response as structured JSON.
 5. **Report** is generated from the evidence, with risks and limitations.
 6. **Optional LLM** can polish the answer only after the local evidence exists. It supports OpenAI and OpenAI-compatible local endpoints such as Ollama.
+7. **LLM guardrail** checks numeric claims against structured evidence and falls back to the deterministic report if unsupported numbers appear.
 
 If `OPENAI_API_KEY` is not set, the project still runs and uses deterministic fallback output.
 
@@ -58,6 +59,7 @@ If `OPENAI_API_KEY` is not set, the project still runs and uses deterministic fa
 - Data source profile: requested mode, actual runtime mode, provider, fetch time, fallback reason, and legacy crawler boundary
 - Retrieval-augmented risk explanations for fixed-income concepts
 - Evidence quality scoring with confidence and freshness labels
+- LLM faithfulness guardrail for numeric evidence checks and safe fallback
 - Agent eval suite for repeatable behavior checks
 - Docker deployment with gunicorn
 
@@ -83,7 +85,10 @@ flowchart TD
     L --> M[Evidence quality assessment]
     M --> N{OPENAI_API_KEY or OPENAI_BASE_URL}
     N -->|missing| O[Deterministic fallback]
-    N -->|set| P[OpenAI evidence-constrained enhancement]
+    N -->|set| P[OpenAI or local LLM enhancement]
+    P --> Q[LLM numeric faithfulness guardrail]
+    Q -->|passed| R[LLM final answer]
+    Q -->|failed| S[Deterministic fallback answer]
 ```
 
 ## Tool Trace Example
@@ -123,6 +128,7 @@ User question: 搜索23附息国债26并给出收益率分析
 │   ├── data_loader.py           # AkShare live loading, Excel fallback, maturity normalization
 │   ├── risk_knowledge.py        # Local fixed-income risk explanation retrieval
 │   ├── evidence_quality.py      # Evidence scoring, freshness, and confidence labels
+│   ├── llm_guardrail.py         # Numeric faithfulness checks for LLM answers
 │   └── tools.py                 # Local bond analysis tools
 ├── data/testdata.xlsx           # Static bond sample data
 ├── evals/
@@ -174,6 +180,8 @@ FLASK_ENV=production
 SECRET_KEY=change-me-in-production
 OPENAI_API_KEY=
 OPENAI_MODEL=gpt-5.4-mini
+OPENAI_BASE_URL=
+OPENAI_API_STYLE=auto
 BOND_DATA_MODE=auto
 ```
 
@@ -209,8 +217,12 @@ The API response exposes safe LLM state:
 ```json
 {
   "used_llm": false,
+  "used_llm_in_final": false,
   "llm_status": "disabled",
-  "llm_error": null
+  "llm_error": null,
+  "llm_guardrail": {
+    "status": "not_run"
+  }
 }
 ```
 
@@ -247,7 +259,10 @@ Key response fields:
 - `data_source`: active data source profile, including requested mode, runtime mode, provider, fetch time, row counts, and fallback reason
 - `risk_explanations`: retrieved fixed-income risk explanations
 - `evidence_quality`: score, confidence labels, coverage, freshness, and penalties
-- `final_answer`: report text
+- `final_answer`: either the LLM answer if it passes guardrails, or the deterministic report
+- `final_answer_source`: `llm` or `deterministic_fallback`
+- `llm_enhanced_answer`: raw LLM answer kept for debugging when available
+- `llm_guardrail`: numeric faithfulness status, score, and unsupported numeric claims
 - `llm_status`: `disabled`, `success`, or `failed`
 
 ## Data Source Boundary
@@ -368,6 +383,7 @@ The `main` branch removes legacy login/database code, obsolete crawler code, old
 - **Live-first source design:** AkShare live data is the default, with a transparent static fallback for reliability.
 - **Evidence constraint:** final answers are generated from `data_evidence`, not free-form finance guessing.
 - **Local LLM compatibility:** OpenAI-compatible endpoints can exercise the LLM path without a paid API key.
+- **LLM guardrail:** numeric LLM claims are checked against structured evidence before they can become the final answer.
 - **Fallback design:** no API key required; OpenAI/local LLM path is optional and observable.
 - **Risk boundary:** output always includes limitations and non-investment-advice language.
 - **Eval method:** local eval cases test intent, tool selection, and answer constraints.

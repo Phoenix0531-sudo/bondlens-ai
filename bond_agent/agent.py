@@ -5,6 +5,7 @@ import os
 
 from .data_loader import resolve_bond_data
 from .evidence_quality import assess_evidence_quality
+from .llm_guardrail import assess_llm_faithfulness
 from .planner import classify_intent
 from .risk_knowledge import retrieve_risk_explanations
 from .tools import (
@@ -90,11 +91,19 @@ class BondAnalystAgent:
         report["risk_explanations"] = risk_explanations
         report["evidence_quality"] = evidence_quality
 
-        tool_trace.append("-> final answer")
-
         fallback_answer = self._format_report(report, plan)
         llm_result = self._try_llm_answer(question, plan, report)
-        final_answer = llm_result["text"] or fallback_answer
+        llm_guardrail = (
+            assess_llm_faithfulness(llm_result["text"], report)
+            if llm_result["status"] == "success"
+            else assess_llm_faithfulness(None, report)
+        )
+        if llm_result["status"] == "success":
+            tool_trace.append(f"-> llm_guardrail(status={llm_guardrail['status']})")
+
+        use_llm_final = llm_result["status"] == "success" and llm_guardrail["status"] == "passed"
+        final_answer = llm_result["text"] if use_llm_final else fallback_answer
+        tool_trace.append("-> final answer")
 
         return {
             "agent": self.name,
@@ -111,7 +120,11 @@ class BondAnalystAgent:
             "risk_notes": report["risk_notes"],
             "limitations": report["limitations"],
             "final_answer": final_answer,
+            "final_answer_source": "llm" if use_llm_final else "deterministic_fallback",
+            "llm_enhanced_answer": llm_result["text"],
+            "llm_guardrail": llm_guardrail,
             "used_llm": llm_result["status"] == "success",
+            "used_llm_in_final": use_llm_final,
             "llm_status": llm_result["status"],
             "llm_error": llm_result["error"],
             "disclaimer": DISCLAIMER,

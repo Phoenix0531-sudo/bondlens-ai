@@ -175,3 +175,30 @@
 - `python evals/run_agent_evals.py`: passed, 10/10 cases.
 - `docker build -t bondlens-ai:local-llm .`: passed.
 - GitHub Actions CI run `26430905367`: passed on `main` for commit `43bfe90`.
+
+# LLM Faithfulness Guardrail Todo
+
+## Plan
+
+- [x] Add a deterministic LLM numeric faithfulness guardrail.
+- [x] Keep local Ollama available for smoke testing, not as the source of financial truth.
+- [x] Return `llm_enhanced_answer`, `llm_guardrail`, `used_llm_in_final`, and `final_answer_source`.
+- [x] Fall back to the deterministic report when the LLM output contains unsupported numeric claims.
+- [x] Surface guardrail status in the Web UI and bilingual README.
+- [x] Run lint, tests, evals, Docker build, and local Ollama smoke.
+- [ ] Push and verify CI.
+
+## Success Criteria
+
+- Unsupported numeric claims such as invented percentages are detected.
+- If LLM output fails the guardrail, `final_answer_source` is `deterministic_fallback`.
+- If LLM output passes the guardrail, `final_answer_source` is `llm`.
+- Tests remain deterministic without Ollama or internet access.
+
+## Review
+
+- `python -m ruff check .`: passed.
+- `python -m pytest -q --basetemp .tmp/pytest-guardrail-<guid>`: passed, 31 tests.
+- `python evals/run_agent_evals.py`: passed, 10/10 cases.
+- `docker build -t bondlens-ai:guardrail .`: passed.
+- Local Ollama smoke with `qwen2.5:1.5b`: LLM call succeeded; guardrail rejected one generated answer and safely used `deterministic_fallback`.

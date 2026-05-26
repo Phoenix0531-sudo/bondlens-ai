@@ -79,9 +79,14 @@
       <h3>Planner</h3>
       <pre>{{ result.plan | tojson(indent=2) }}</pre>
       <p class="badge badge-secondary">LLM: {{ result.llm_status }}</p>
+      <p class="badge badge-warning">LLM Guardrail: {{ result.llm_guardrail.status }}</p>
+      <p class="badge badge-light">Final: {{ result.final_answer_source }}</p>
       <p class="badge badge-info">Evidence: {{ result.evidence_quality.level }} / {{ result.evidence_quality.score }}</p>
       {% if result.llm_error %}
         <p class="text-muted">{{ result.llm_error }}</p>
+      {% endif %}
+      {% if result.llm_guardrail.status == 'failed' %}
+        <p class="text-muted">{{ result.llm_guardrail.summary }}</p>
       {% endif %}
     {% else %}
       <p class="text-muted">提交问题后展示每一步工具调用。</p>
@@ -128,6 +133,13 @@
     <p><strong>{{ result.evidence_quality.level }}</strong>，评分 {{ result.evidence_quality.score }}/100。</p>
     <p>{{ result.evidence_quality.summary }}</p>
     <pre>{{ result.evidence_quality.coverage | tojson(indent=2) }}</pre>
+
+    <h2>LLM Guardrail</h2>
+    <p>状态：{{ result.llm_guardrail.status }}；最终答案来源：{{ result.final_answer_source }}。</p>
+    <p>{{ result.llm_guardrail.summary }}</p>
+    {% if result.llm_guardrail.unsupported_numbers %}
+      <pre>{{ result.llm_guardrail.unsupported_numbers | tojson(indent=2) }}</pre>
+    {% endif %}
 
     <h2>Data Evidence</h2>
     <div class="row">
