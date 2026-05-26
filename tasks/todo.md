@@ -156,7 +156,7 @@
 - [x] Add focused tests for local endpoint configuration and chat fallback.
 - [x] Verify against the local Ollama service on `127.0.0.1:11434`.
 - [x] Run lint, tests, evals, Docker build, and local smoke checks.
-- [ ] Push and verify CI.
+- [x] Push and verify CI.
 
 ## Success Criteria
 
@@ -174,3 +174,4 @@
 - `python -m pytest -q --basetemp .tmp/pytest-llm-<guid>`: passed, 30 tests.
 - `python evals/run_agent_evals.py`: passed, 10/10 cases.
 - `docker build -t bondlens-ai:local-llm .`: passed.
+- GitHub Actions CI run `26430905367`: passed on `main` for commit `43bfe90`.
