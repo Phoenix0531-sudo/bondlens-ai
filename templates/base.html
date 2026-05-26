@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="{{ 'en' if current_lang == 'en' else 'zh-CN' }}" data-initial-lang="{{ current_lang }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -77,6 +77,12 @@
             font-size: 13px;
         }
 
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+
         .topnav {
             display: flex;
             align-items: center;
@@ -87,6 +93,34 @@
 
         .topnav a {
             text-decoration: none;
+        }
+
+        .language-switch {
+            display: inline-grid;
+            grid-template-columns: 1fr 1fr;
+            border: 1px solid var(--line);
+            background: rgba(255, 253, 248, 0.82);
+        }
+
+        .language-option {
+            min-width: 44px;
+            border: 0;
+            border-right: 1px solid var(--line);
+            padding: 7px 10px;
+            background: transparent;
+            color: var(--muted);
+            cursor: pointer;
+            font: inherit;
+            font-size: 12px;
+        }
+
+        .language-option:last-child {
+            border-right: 0;
+        }
+
+        .language-option[aria-pressed="true"] {
+            background: var(--ink);
+            color: var(--surface);
         }
 
         .page-shell {
@@ -114,15 +148,95 @@
                 <span class="brand-mark">BL</span>
                 <span>BondLens AI</span>
             </a>
+            <div class="topbar-actions">
             <nav class="topnav" aria-label="Primary">
-                <a href="/agent">Agent</a>
+                <a href="/agent" data-lang-zh="智能体" data-lang-en="Agent">智能体</a>
                 <a href="https://github.com/Phoenix0531-sudo/bondlens-ai">GitHub</a>
                 <a href="https://github.com/Phoenix0531-sudo/bondlens-ai/actions/workflows/ci.yml">CI</a>
             </nav>
+            <div class="language-switch" aria-label="Language switch">
+                <button class="language-option" type="button" data-language-option="zh" aria-pressed="{{ 'true' if current_lang == 'zh' else 'false' }}">中</button>
+                <button class="language-option" type="button" data-language-option="en" aria-pressed="{{ 'true' if current_lang == 'en' else 'false' }}">EN</button>
+            </div>
+            </div>
         </div>
     </header>
     <main class="page-shell">
         {% block content %}{% endblock %}
     </main>
+    <script>
+        (() => {
+            const storageKey = "bondlens.language";
+            const normalize = (value) => (value === "en" ? "en" : "zh");
+
+            function setUrlLanguage(lang) {
+                const url = new URL(window.location.href);
+                url.searchParams.set("lang", lang);
+                window.history.replaceState({}, "", url);
+            }
+
+            function applyLanguage(lang, persist = true) {
+                const activeLang = normalize(lang);
+                document.documentElement.lang = activeLang === "en" ? "en" : "zh-CN";
+                document.documentElement.dataset.initialLang = activeLang;
+
+                document.querySelectorAll("[data-lang-zh][data-lang-en]").forEach((element) => {
+                    element.textContent = activeLang === "en" ? element.dataset.langEn : element.dataset.langZh;
+                });
+
+                document.querySelectorAll("[data-placeholder-zh][data-placeholder-en]").forEach((element) => {
+                    element.setAttribute(
+                        "placeholder",
+                        activeLang === "en" ? element.dataset.placeholderEn : element.dataset.placeholderZh
+                    );
+                });
+
+                document.querySelectorAll("input[name='lang']").forEach((element) => {
+                    element.value = activeLang;
+                });
+
+                const answerTarget = document.querySelector("[data-answer-target]");
+                const answerTranslations = document.getElementById("answer-translations");
+                if (answerTarget && answerTranslations) {
+                    try {
+                        const payload = JSON.parse(answerTranslations.textContent || "{}");
+                        answerTarget.textContent = payload[activeLang] || payload.zh || "";
+                    } catch {
+                        answerTarget.textContent = answerTarget.textContent;
+                    }
+                }
+
+                const traceList = document.querySelector("[data-trace-list]");
+                const traceTranslations = document.getElementById("trace-translations");
+                if (traceList && traceTranslations) {
+                    try {
+                        const payload = JSON.parse(traceTranslations.textContent || "{}");
+                        traceList.querySelectorAll("li").forEach((item, index) => {
+                            item.textContent = (payload[activeLang] || [])[index] || item.textContent;
+                        });
+                    } catch {
+                        traceList.textContent = traceList.textContent;
+                    }
+                }
+
+                document.querySelectorAll("[data-language-option]").forEach((button) => {
+                    button.setAttribute("aria-pressed", button.dataset.languageOption === activeLang ? "true" : "false");
+                });
+
+                if (persist) {
+                    window.localStorage.setItem(storageKey, activeLang);
+                    setUrlLanguage(activeLang);
+                }
+            }
+
+            document.querySelectorAll("[data-language-option]").forEach((button) => {
+                button.addEventListener("click", () => applyLanguage(button.dataset.languageOption));
+            });
+
+            const urlLang = new URL(window.location.href).searchParams.get("lang");
+            const initialLang = normalize(urlLang || window.localStorage.getItem(storageKey) || document.documentElement.dataset.initialLang);
+            applyLanguage(initialLang, Boolean(urlLang));
+        })();
+    </script>
 </body>
 </html>

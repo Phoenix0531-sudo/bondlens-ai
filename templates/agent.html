@@ -405,39 +405,40 @@
 
 <div class="agent-hero">
   <section class="hero-copy">
-    <p class="eyebrow">Explainable Bond Analysis Agent</p>
+    <p class="eyebrow" data-lang-zh="可解释债券分析智能体" data-lang-en="Explainable Bond Analysis Agent">可解释债券分析智能体</p>
     <h1>BondLens AI</h1>
-    <p class="hero-lead">面向中文债券市场的证据驱动分析工作台：实时 AkShare 优先，实时快照兜底，本地 Excel 保底；每个回答都展示工具轨迹、数据证据、风险解释、LLM guardrail 和非投资建议边界。</p>
-    <div class="example-strip" aria-label="Example questions">
-      <div class="example-chip">当前样本收益率分布是什么样？</div>
-      <div class="example-chip">按收益率列出最高的前5只债券</div>
-      <div class="example-chip">搜索23附息国债26并给出收益率分析</div>
-      <div class="example-chip">有没有收益率异常的债券？</div>
+    <p class="hero-lead" data-lang-zh="面向中文债券市场的证据驱动分析工作台：实时 AkShare 优先，实时快照兜底，本地 Excel 保底；每个回答都展示工具轨迹、数据证据、风险解释、LLM guardrail 和非投资建议边界。" data-lang-en="An evidence-driven workspace for the Chinese bond market: AkShare live data first, cached snapshot fallback, local Excel as the final backup. Every answer exposes tool traces, data evidence, risk context, LLM guardrails, and a non-advisory boundary.">面向中文债券市场的证据驱动分析工作台：实时 AkShare 优先，实时快照兜底，本地 Excel 保底；每个回答都展示工具轨迹、数据证据、风险解释、LLM guardrail 和非投资建议边界。</p>
+    <div class="example-strip" aria-label="示例问题">
+      <div class="example-chip" data-lang-zh="当前样本收益率分布是什么样？" data-lang-en="What does the current yield distribution look like?">当前样本收益率分布是什么样？</div>
+      <div class="example-chip" data-lang-zh="按收益率列出最高的前5只债券" data-lang-en="List the top 5 bonds by yield.">按收益率列出最高的前5只债券</div>
+      <div class="example-chip" data-lang-zh="搜索23附息国债26并给出收益率分析" data-lang-en="Search 23附息国债26 and analyze its yield.">搜索23附息国债26并给出收益率分析</div>
+      <div class="example-chip" data-lang-zh="有没有收益率异常的债券？" data-lang-en="Are there any yield outliers?">有没有收益率异常的债券？</div>
     </div>
   </section>
 
   <section class="query-console">
     <div class="console-title">
-      <span>Agent Console</span>
-      <span class="status-pill">Live / Snapshot / Static</span>
+      <span data-lang-zh="智能体控制台" data-lang-en="Agent Console">智能体控制台</span>
+      <span class="status-pill" data-lang-zh="实时 / 快照 / 本地" data-lang-en="Live / Snapshot / Static">实时 / 快照 / 本地</span>
     </div>
     {% if form_error %}
       <p class="form-error">{{ form_error }}</p>
     {% endif %}
     <form method="post">
+      <input type="hidden" name="lang" value="{{ lang }}">
       <div class="form-field">
-        <label for="question">自然语言问题</label>
-        <textarea id="question" name="question" placeholder="例如：找出收益率最高的债券，并说明是否有异常收益率样本。">{{ question }}</textarea>
+        <label for="question" data-lang-zh="自然语言问题" data-lang-en="Natural-language question">自然语言问题</label>
+        <textarea id="question" name="question" placeholder="例如：找出收益率最高的债券，并说明是否有异常收益率样本。" data-placeholder-zh="例如：找出收益率最高的债券，并说明是否有异常收益率样本。" data-placeholder-en="Example: list the highest-yield bonds and explain whether any yield outliers appear.">{{ question }}</textarea>
       </div>
       <div class="form-field">
-        <label for="data_mode">数据源模式</label>
+        <label for="data_mode" data-lang-zh="数据源模式" data-lang-en="Data source mode">数据源模式</label>
         <select id="data_mode" name="data_mode">
-          <option value="auto" {% if data_mode == 'auto' %}selected{% endif %}>Auto: 实时优先，失败后使用快照/本地备用</option>
-          <option value="live" {% if data_mode == 'live' %}selected{% endif %}>Live: AkShare 实时债券行情</option>
-          <option value="static" {% if data_mode == 'static' %}selected{% endif %}>Static: 本地 Excel 备用样本</option>
+          <option value="auto" {% if data_mode == 'auto' %}selected{% endif %} data-lang-zh="Auto：实时优先，失败后使用快照/本地备用" data-lang-en="Auto: live first, then snapshot/local fallback">Auto：实时优先，失败后使用快照/本地备用</option>
+          <option value="live" {% if data_mode == 'live' %}selected{% endif %} data-lang-zh="Live：AkShare 实时债券行情" data-lang-en="Live: AkShare live bond feed">Live：AkShare 实时债券行情</option>
+          <option value="static" {% if data_mode == 'static' %}selected{% endif %} data-lang-zh="Static：本地 Excel 备用样本" data-lang-en="Static: local Excel fallback sample">Static：本地 Excel 备用样本</option>
         </select>
       </div>
-      <button class="run-button" type="submit">运行 Agent</button>
+      <button class="run-button" type="submit" data-lang-zh="运行 Agent" data-lang-en="Run Agent">运行 Agent</button>
     </form>
   </section>
 </div>
@@ -447,7 +448,7 @@
     <div class="metric-grid">
       {% for metric in view.metrics %}
         <article class="metric">
-          <p class="metric-label">{{ metric.label }}</p>
+          <p class="metric-label" data-lang-zh="{{ metric.label_zh }}" data-lang-en="{{ metric.label_en }}">{{ metric.label }}</p>
           <p class="metric-value">{{ metric.value }}</p>
         </article>
       {% endfor %}
@@ -457,34 +458,36 @@
       <section class="surface">
         <div class="surface-header">
           <div>
-            <h2 class="surface-title">Final Answer</h2>
+            <h2 class="surface-title" data-lang-zh="最终回答" data-lang-en="Final Answer">最终回答</h2>
             <p class="surface-subtitle">{{ result.disclaimer }}</p>
           </div>
           <div class="badge-row">
-            <span class="badge good">Evidence {{ result.evidence_quality.level }} / {{ result.evidence_quality.score }}</span>
-            <span class="badge">Final {{ result.final_answer_source }}</span>
+            <span class="badge good" data-lang-zh="证据 {{ view.evidence_level_label }} / {{ result.evidence_quality.score }}" data-lang-en="Evidence {{ result.evidence_quality.level }} / {{ result.evidence_quality.score }}">证据 {{ view.evidence_level_label }} / {{ result.evidence_quality.score }}</span>
+            <span class="badge" data-lang-zh="最终 {{ view.metrics[4].value }}" data-lang-en="Final {{ result.final_answer_source }}">最终 {{ view.metrics[4].value }}</span>
           </div>
         </div>
-        <div class="surface-body answer-box">{{ result.final_answer }}</div>
+        <div class="surface-body answer-box" data-answer-target>{{ view.final_answer }}</div>
+        <script id="answer-translations" type="application/json">{{ view.final_answer_by_lang | tojson }}</script>
       </section>
 
       <aside class="surface">
         <div class="surface-header">
           <div>
-            <h2 class="surface-title">Tool Trace</h2>
-            <p class="surface-subtitle">Planner and tool calls used for this answer.</p>
+            <h2 class="surface-title" data-lang-zh="工具轨迹" data-lang-en="Tool Trace">工具轨迹</h2>
+            <p class="surface-subtitle" data-lang-zh="本次回答实际使用的规划器和工具调用。" data-lang-en="Planner and tool calls used for this answer.">本次回答实际使用的规划器和工具调用。</p>
           </div>
         </div>
         <div class="surface-body">
-          <ul class="trace-list">
-            {% for item in result.tool_trace %}
+          <ul class="trace-list" data-trace-list>
+            {% for item in view.tool_trace %}
               <li>{{ item }}</li>
             {% endfor %}
           </ul>
+          <script id="trace-translations" type="application/json">{{ view.tool_trace_by_lang | tojson }}</script>
           <div class="badge-row">
-            <span class="badge">Intent {{ result.plan.intent }}</span>
-            <span class="badge">LLM {{ result.llm_status }}</span>
-            <span class="badge {% if result.llm_guardrail.status == 'passed' %}good{% else %}warn{% endif %}">Guardrail {{ result.llm_guardrail.status }}</span>
+            <span class="badge" data-lang-zh="意图 {{ view.intent_label }}" data-lang-en="Intent {{ result.plan.intent }}">意图 {{ view.intent_label }}</span>
+            <span class="badge" data-lang-zh="LLM {{ view.llm_status_label }}" data-lang-en="LLM {{ result.llm_status }}">LLM {{ view.llm_status_label }}</span>
+            <span class="badge {% if result.llm_guardrail.status == 'passed' %}good{% else %}warn{% endif %}" data-lang-zh="护栏 {{ view.guardrail_status_label }}" data-lang-en="Guardrail {{ result.llm_guardrail.status }}">护栏 {{ view.guardrail_status_label }}</span>
           </div>
         </div>
       </aside>
@@ -494,21 +497,21 @@
       <section class="surface">
         <div class="surface-header">
           <div>
-            <h2 class="surface-title">Market Evidence</h2>
-            <p class="surface-subtitle">{{ result.data_source.source_name }} · {{ result.data_source.runtime_mode }} · {{ result.data_source.row_count }} rows</p>
+            <h2 class="surface-title" data-lang-zh="市场证据" data-lang-en="Market Evidence">市场证据</h2>
+            <p class="surface-subtitle" data-lang-zh="{{ view.data_source_subtitle }}" data-lang-en="{{ result.data_source.source_name }} · {{ result.data_source.runtime_mode }} · {{ result.data_source.row_count }} rows">{{ view.data_source_subtitle }}</p>
           </div>
         </div>
         <div class="surface-body">
           <div class="metric-grid">
             {% for metric in view.market_summary %}
               <article class="metric">
-                <p class="metric-label">{{ metric.label }}</p>
+                <p class="metric-label" data-lang-zh="{{ metric.label_zh }}" data-lang-en="{{ metric.label_en }}">{{ metric.label }}</p>
                 <p class="metric-value">{{ metric.value }}</p>
               </article>
             {% endfor %}
           </div>
 
-          <h3 class="surface-title">Yield Distribution</h3>
+          <h3 class="surface-title" data-lang-zh="收益率分布" data-lang-en="Yield Distribution">收益率分布</h3>
           {% if view.yield_bars %}
             <div class="bar-chart">
               {% for bar in view.yield_bars %}
@@ -520,17 +523,17 @@
               {% endfor %}
             </div>
           {% else %}
-            <p class="surface-subtitle">本次计划未调用市场概览工具。</p>
+            <p class="surface-subtitle" data-lang-zh="本次计划未调用市场概览工具。" data-lang-en="The current plan did not call the market overview tool.">本次计划未调用市场概览工具。</p>
           {% endif %}
 
           {% if result.data_source.fallback_reason or result.data_source.storage %}
             <details class="raw-panel">
-              <summary>Data Source Detail</summary>
+              <summary data-lang-zh="数据源详情" data-lang-en="Data Source Detail">数据源详情</summary>
               {% if result.data_source.fallback_reason %}
-                <p class="surface-subtitle">实时数据降级原因：{{ result.data_source.fallback_reason }}</p>
+                <p class="surface-subtitle" data-lang-zh="实时数据降级原因：{{ result.data_source.fallback_reason }}" data-lang-en="Live-data fallback reason: {{ result.data_source.fallback_reason }}">实时数据降级原因：{{ result.data_source.fallback_reason }}</p>
               {% endif %}
               {% if result.data_source.storage %}
-                <p class="surface-subtitle">存储位置：{{ result.data_source.storage }}</p>
+                <p class="surface-subtitle" data-lang-zh="存储位置：{{ result.data_source.storage }}" data-lang-en="Storage path: {{ result.data_source.storage }}">存储位置：{{ result.data_source.storage }}</p>
               {% endif %}
             </details>
           {% endif %}
@@ -540,29 +543,29 @@
       <section class="surface">
         <div class="surface-header">
           <div>
-            <h2 class="surface-title">LLM Guardrail</h2>
-            <p class="surface-subtitle">Numeric and unsafe investment-language checks.</p>
+            <h2 class="surface-title" data-lang-zh="LLM 护栏" data-lang-en="LLM Guardrail">LLM 护栏</h2>
+            <p class="surface-subtitle" data-lang-zh="数值一致性与不当投资建议语言检查。" data-lang-en="Numeric and unsafe investment-language checks.">数值一致性与不当投资建议语言检查。</p>
           </div>
         </div>
         <div class="surface-body">
           <div class="badge-row">
-            <span class="badge">Status {{ result.llm_guardrail.status }}</span>
-            <span class="badge">Numeric {{ result.llm_guardrail.numeric_status }}</span>
-            <span class="badge">Language {{ result.llm_guardrail.language_status }}</span>
+            <span class="badge" data-lang-zh="状态 {{ view.guardrail_status_label }}" data-lang-en="Status {{ result.llm_guardrail.status }}">状态 {{ view.guardrail_status_label }}</span>
+            <span class="badge" data-lang-zh="数值 {{ result.llm_guardrail.numeric_status | replace('not_run', '未运行') | replace('passed', '通过') | replace('failed', '失败') }}" data-lang-en="Numeric {{ result.llm_guardrail.numeric_status }}">数值 {{ result.llm_guardrail.numeric_status | replace('not_run', '未运行') | replace('passed', '通过') | replace('failed', '失败') }}</span>
+            <span class="badge" data-lang-zh="语言 {{ result.llm_guardrail.language_status | replace('not_run', '未运行') | replace('passed', '通过') | replace('failed', '失败') }}" data-lang-en="Language {{ result.llm_guardrail.language_status }}">语言 {{ result.llm_guardrail.language_status | replace('not_run', '未运行') | replace('passed', '通过') | replace('failed', '失败') }}</span>
           </div>
-          <p class="surface-subtitle">{{ result.llm_guardrail.summary }}</p>
+          <p class="surface-subtitle" data-lang-zh="{{ view.llm_guardrail_summary_by_lang.zh }}" data-lang-en="{{ view.llm_guardrail_summary_by_lang.en }}">{{ view.llm_guardrail_summary }}</p>
           {% if result.llm_error %}
             <p class="surface-subtitle">{{ result.llm_error }}</p>
           {% endif %}
           {% if result.llm_guardrail.unsupported_numbers %}
             <details>
-              <summary>Unsupported Numbers</summary>
+              <summary data-lang-zh="未被证据支持的数字" data-lang-en="Unsupported Numbers">未被证据支持的数字</summary>
               <pre>{{ result.llm_guardrail.unsupported_numbers | tojson(indent=2) }}</pre>
             </details>
           {% endif %}
           {% if result.llm_guardrail.unsafe_phrases %}
             <details>
-              <summary>Unsafe Risk Language</summary>
+              <summary data-lang-zh="不安全风险语言" data-lang-en="Unsafe Risk Language">不安全风险语言</summary>
               <pre>{{ result.llm_guardrail.unsafe_phrases | tojson(indent=2) }}</pre>
             </details>
           {% endif %}
@@ -574,8 +577,8 @@
       <section class="surface">
         <div class="surface-header">
           <div>
-            <h2 class="surface-title">Top Ranked Bonds</h2>
-            <p class="surface-subtitle">The table is evidence, not a buy list.</p>
+            <h2 class="surface-title" data-lang-zh="排序靠前债券" data-lang-en="Top Ranked Bonds">排序靠前债券</h2>
+            <p class="surface-subtitle" data-lang-zh="表格是证据展示，不是买入清单。" data-lang-en="The table is evidence, not a buy list.">表格是证据展示，不是买入清单。</p>
           </div>
         </div>
         <div class="surface-body">
@@ -583,10 +586,10 @@
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>债券简称</th>
-                  <th>待偿期</th>
-                  <th>收益率</th>
-                  <th>成交量</th>
+                  <th data-lang-zh="债券简称" data-lang-en="Bond">债券简称</th>
+                  <th data-lang-zh="待偿期" data-lang-en="Maturity">待偿期</th>
+                  <th data-lang-zh="收益率" data-lang-en="Yield">收益率</th>
+                  <th data-lang-zh="成交量" data-lang-en="Volume">成交量</th>
                 </tr>
               </thead>
               <tbody>
@@ -601,7 +604,7 @@
               </tbody>
             </table>
           {% else %}
-            <p class="surface-subtitle">本次计划未调用排序工具。</p>
+            <p class="surface-subtitle" data-lang-zh="本次计划未调用排序工具。" data-lang-en="The current plan did not call the ranking tool.">本次计划未调用排序工具。</p>
           {% endif %}
         </div>
       </section>
@@ -609,18 +612,18 @@
       <section class="surface">
         <div class="surface-header">
           <div>
-            <h2 class="surface-title">Risk Explanation Layer</h2>
-            <p class="surface-subtitle">Retrieved fixed-income context used to frame the answer.</p>
+            <h2 class="surface-title" data-lang-zh="风险解释层" data-lang-en="Risk Explanation Layer">风险解释层</h2>
+            <p class="surface-subtitle" data-lang-zh="用于约束回答边界的固收风险上下文。" data-lang-en="Retrieved fixed-income context used to frame the answer.">用于约束回答边界的固收风险上下文。</p>
           </div>
         </div>
         <div class="surface-body split-list">
-          {% for item in result.risk_explanations %}
+          {% for item in view.risk_explanations %}
             <article class="risk-item">
-              <h3>{{ item.title }}</h3>
-              <p>{{ item.summary }}</p>
+              <h3 data-lang-zh="{{ item.title_zh }}" data-lang-en="{{ item.title_en }}">{{ item.title }}</h3>
+              <p data-lang-zh="{{ item.summary_zh }}" data-lang-en="{{ item.summary_en }}">{{ item.summary }}</p>
               <ul>
                 {% for point in item.watch_points %}
-                  <li>{{ point }}</li>
+                  <li data-lang-zh="{{ item.watch_points_zh[loop.index0] if item.watch_points_zh|length > loop.index0 else point }}" data-lang-en="{{ item.watch_points_en[loop.index0] if item.watch_points_en|length > loop.index0 else point }}">{{ point }}</li>
                 {% endfor %}
               </ul>
             </article>
@@ -632,20 +635,20 @@
     <section class="surface raw-panel">
       <div class="surface-header">
         <div>
-          <h2 class="surface-title">Evidence Console</h2>
-          <p class="surface-subtitle">{{ result.evidence_quality.summary }}</p>
+          <h2 class="surface-title" data-lang-zh="证据控制台" data-lang-en="Evidence Console">证据控制台</h2>
+          <p class="surface-subtitle" data-lang-zh="{{ view.evidence_quality_summary_by_lang.zh }}" data-lang-en="{{ view.evidence_quality_summary_by_lang.en }}">{{ view.evidence_quality_summary }}</p>
         </div>
       </div>
       <div class="surface-body">
         {% if view.outlier_records %}
-          <h3 class="surface-title">Yield Outliers</h3>
+          <h3 class="surface-title" data-lang-zh="收益率异常样本" data-lang-en="Yield Outliers">收益率异常样本</h3>
           <table class="data-table">
             <thead>
               <tr>
-                <th>债券简称</th>
-                <th>收益率</th>
-                <th>异常分数</th>
-                <th>成交量</th>
+                <th data-lang-zh="债券简称" data-lang-en="Bond">债券简称</th>
+                <th data-lang-zh="收益率" data-lang-en="Yield">收益率</th>
+                <th data-lang-zh="异常分数" data-lang-en="Outlier Score">异常分数</th>
+                <th data-lang-zh="成交量" data-lang-en="Volume">成交量</th>
               </tr>
             </thead>
             <tbody>
@@ -662,20 +665,20 @@
         {% endif %}
         {% if result.data_evidence.comparison %}
           <details>
-            <summary>Bond vs Market</summary>
+            <summary data-lang-zh="单券对比市场" data-lang-en="Bond vs Market">单券对比市场</summary>
             <pre>{{ result.data_evidence.comparison | tojson(indent=2) }}</pre>
           </details>
         {% endif %}
         <details>
-          <summary>Planner JSON</summary>
+          <summary data-lang-zh="规划器 JSON" data-lang-en="Planner JSON">规划器 JSON</summary>
           <pre>{{ result.plan | tojson(indent=2) }}</pre>
         </details>
         <details>
-          <summary>Evidence Quality JSON</summary>
+          <summary data-lang-zh="证据质量 JSON" data-lang-en="Evidence Quality JSON">证据质量 JSON</summary>
           <pre>{{ result.evidence_quality | tojson(indent=2) }}</pre>
         </details>
         <details>
-          <summary>Data Evidence JSON</summary>
+          <summary data-lang-zh="数据证据 JSON" data-lang-en="Data Evidence JSON">数据证据 JSON</summary>
           <pre>{{ result.data_evidence | tojson(indent=2) }}</pre>
         </details>
       </div>

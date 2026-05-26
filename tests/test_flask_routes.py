@@ -12,6 +12,35 @@ def test_agent_pages_smoke():
     assert b"Evidence Console" not in response.data
 
 
+def test_agent_page_exposes_language_switch():
+    client = app.test_client()
+
+    response = client.get("/agent?data_mode=static&lang=zh")
+    html = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert 'data-language-option="zh"' in html
+    assert 'data-language-option="en"' in html
+    assert "智能体控制台" in html
+    assert "Agent Console" in html
+
+
+def test_agent_page_localizes_result_for_chinese():
+    client = app.test_client()
+
+    response = client.post(
+        "/agent",
+        data={"question": "当前样本收益率分布是什么样？", "data_mode": "static", "lang": "zh"},
+    )
+    html = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "最终回答" in html
+    assert "问题：" in html
+    assert "风险解释层" in html
+    assert "工具轨迹" in html
+
+
 def test_healthz():
     client = app.test_client()
 
