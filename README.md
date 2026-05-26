@@ -118,7 +118,7 @@ User question: 搜索23附息国债26并给出收益率分析
 - OpenAI Python SDK, optional
 - Pytest + local agent evals
 - Docker Compose + gunicorn
-- GitHub Actions CI + Dependabot
+- GitHub Actions CI
 
 ## Architecture
 
@@ -396,7 +396,6 @@ The repository includes:
 - code of conduct
 - pull request template
 - bug and feature issue templates
-- Dependabot configuration for Python dependencies and GitHub Actions
 
 The recommended branch policy is to protect `main` and require the CI workflow to pass before merging. The original thesis branch remains unprotected historical reference and should not receive modern feature work.
 

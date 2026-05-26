@@ -118,7 +118,7 @@ User question: 搜索23附息国债26并给出收益率分析
 - OpenAI Python SDK，可选
 - Pytest + 本地 Agent eval
 - Docker Compose + gunicorn
-- GitHub Actions CI + Dependabot
+- GitHub Actions CI
 
 ## 项目结构
 
@@ -396,7 +396,6 @@ python -m pytest -q
 - 行为准则
 - Pull request 模板
 - Bug 和 feature issue 模板
-- Python 依赖和 GitHub Actions 的 Dependabot 配置
 
 建议保护 `main` 分支，并要求 CI 通过后再合并。`undergraduate-thesis-2024` 是本科毕设历史分支，不建议继续追加现代功能。
 

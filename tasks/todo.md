@@ -236,7 +236,7 @@
 
 ## Plan
 
-- [x] Add repository facade files: license, contributing guide, security policy, code of conduct, issue templates, pull request template, and Dependabot config.
+- [x] Add repository facade files: license, contributing guide, security policy, code of conduct, issue templates, and pull request template.
 - [x] Add a static GitHub Pages project page under `docs/index.html`.
 - [x] Upgrade `/agent` from a simple form/report page into a dashboard-style analysis workbench.
 - [x] Add visual evidence blocks for metrics, yield distribution, ranking table, outlier table, data source detail, and LLM guardrail state.
@@ -260,3 +260,4 @@
 - `python evals/run_red_team_evals.py`: passed, 3/3 red-team cases.
 - Browser smoke on `http://localhost:5057/agent?data_mode=static`: form rendered, sample question submitted, Evidence Console, Yield Distribution, Top Ranked Bonds, and LLM Guardrail sections rendered.
 - `docker build -t bondlens-ai:ui-facade .`: passed.
+- Dependabot config was removed after it immediately created temporary update branches, because this repository should keep only `main` and `undergraduate-thesis-2024` as long-lived branches.
