@@ -196,9 +196,6 @@ User question: 搜索23附息国债26并给出收益率分析
 ├── templates/agent.html         # Agent 页面
 ├── templates/replay.html        # 最近运行回放页
 ├── tests/                       # 单元测试和 smoke tests
-├── CONTRIBUTING.md
-├── SECURITY.md
-├── CODE_OF_CONDUCT.md
 ├── LICENSE
 ├── Dockerfile
 └── docker-compose.yml
@@ -476,16 +473,9 @@ python -m pytest -q
 - Flask 页面/API smoke tests
 - eval case 加载
 
-## 仓库治理
+## 仓库策略
 
-当前仓库已补齐：
-
-- MIT license
-- 贡献指南
-- 安全策略
-- 行为准则
-- Pull request 模板
-- Bug 和 feature issue 模板
+当前公开仓库刻意保持紧凑：源码、测试、eval、Docker、文档、截图、CI 和 license。通用社区模板已经删除，因为这个仓库定位是个人作品集项目，不是开放协作型开源项目。
 
 建议保护 `main` 分支，并要求 CI 通过后再合并。`undergraduate-thesis-2024` 是本科毕设历史分支，不建议继续追加现代功能。
 

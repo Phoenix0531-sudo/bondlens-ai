@@ -196,9 +196,6 @@ User question: 搜索23附息国债26并给出收益率分析
 ├── templates/agent.html         # Agent UI
 ├── templates/replay.html        # Recent run replay dashboard
 ├── tests/                       # Unit and smoke tests
-├── CONTRIBUTING.md
-├── SECURITY.md
-├── CODE_OF_CONDUCT.md
 ├── LICENSE
 ├── Dockerfile
 └── docker-compose.yml
@@ -476,18 +473,11 @@ Coverage includes:
 - Flask page/API smoke tests
 - eval case loading
 
-## Repository Governance
+## Repository Policy
 
-The repository includes:
+The public repository is intentionally kept compact: source code, tests, evals, Docker, docs, screenshots, CI, and license. Generic community templates were removed because this is a personal portfolio project rather than an open-source collaboration hub.
 
-- MIT license
-- contributing guide
-- security policy
-- code of conduct
-- pull request template
-- bug and feature issue templates
-
-The recommended branch policy is to protect `main` and require the CI workflow to pass before merging. The original thesis branch remains unprotected historical reference and should not receive modern feature work.
+The recommended branch policy is to protect `main` and require the CI workflow to pass before merging. The original thesis branch remains a historical reference and should not receive modern feature work.
 
 ## Data Boundary
 
