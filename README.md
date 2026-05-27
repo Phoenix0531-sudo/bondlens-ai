@@ -12,7 +12,39 @@ BondLens AI is a lightweight, evidence-grounded analysis agent for Chinese bond 
 
 Project page: [https://phoenix0531-sudo.github.io/bondlens-ai/](https://phoenix0531-sudo.github.io/bondlens-ai/)
 
-![BondLens AI agent page placeholder](docs/agent-screenshot-placeholder.svg)
+## Screenshots
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/screenshots/agent-workbench.png" alt="BondLens AI agent workbench">
+      <br><strong>Agent Workbench</strong>
+    </td>
+    <td width="50%">
+      <img src="docs/screenshots/agent-answer-evidence.png" alt="Agent answer and evidence view">
+      <br><strong>Answer, Tool Trace, and Evidence</strong>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="docs/screenshots/risk-profile-judge.png" alt="Risk profile and answer judge">
+      <br><strong>Risk Profile and Answer Judge</strong>
+    </td>
+    <td width="50%">
+      <img src="docs/screenshots/replay-dashboard.png" alt="Agent replay dashboard">
+      <br><strong>Replay Dashboard</strong>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="docs/screenshots/github-project-page.png" alt="GitHub Pages project page">
+      <br><strong>GitHub Pages Project Page</strong>
+    </td>
+    <td width="50%">
+      Live-first data, deterministic tools, optional LLM enhancement, guardrails, replay, Docker, and CI in one portfolio-ready project.
+    </td>
+  </tr>
+</table>
 
 ## Background
 
