@@ -12,6 +12,9 @@ def test_agent_response_validates_against_schema(monkeypatch):
     assert validated.agent == "BondLens AI"
     assert validated.final_answer_source == "deterministic_fallback"
     assert validated.llm_guardrail.status == "not_run"
+    assert validated.answer_judge.status == "not_applicable"
+    assert validated.evidence_ledger
+    assert validated.risk_profile.cards
 
 
 def test_api_schema_bundle_exposes_response_contract():
@@ -21,3 +24,6 @@ def test_api_schema_bundle_exposes_response_contract():
     assert "data_source" in schema["agent_response"]["properties"]
     assert "evidence_quality" in schema["agent_response"]["properties"]
     assert "llm_guardrail" in schema["agent_response"]["properties"]
+    assert "evidence_ledger" in schema["agent_response"]["properties"]
+    assert "answer_judge" in schema["agent_response"]["properties"]
+    assert "risk_profile" in schema["agent_response"]["properties"]

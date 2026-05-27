@@ -47,12 +47,16 @@ OPENAI_TIMEOUT_SECONDS=20
 BOND_DATA_MODE=auto
 BOND_LIVE_CACHE_PATH=
 BOND_LIVE_CACHE_MAX_AGE_HOURS=24
+BOND_REPLAY_ENABLED=true
+BOND_REPLAY_DIR=
 ```
 
 - `BOND_DATA_MODE=auto` tries AkShare live data first, then cached live snapshot, then the local Excel fallback.
 - `OPENAI_API_KEY` is optional. Without it, deterministic fallback output is used.
 - `OPENAI_BASE_URL` can point to an OpenAI-compatible local server such as Ollama.
 - `OPENAI_TIMEOUT_SECONDS` defaults to `20` so slow local models fail closed into deterministic fallback rather than timing out gunicorn.
+- `BOND_REPLAY_ENABLED` controls sanitized run replay summaries for `/replay`. Defaults to `true`.
+- `BOND_REPLAY_DIR` defaults to `.tmp/replays`, which is ignored by Git.
 
 ### Ollama From Docker
 
@@ -77,10 +81,13 @@ For Render, Railway, Fly.io, or similar platforms:
 4. Set `SECRET_KEY` in the platform environment.
 5. Keep `BOND_DATA_MODE=auto` for live-first behavior or `static` for deterministic demos.
 6. Leave `OPENAI_API_KEY` empty if the demo should run without external LLM calls.
+7. Keep replay storage ephemeral unless the deployment platform needs persistent demo history.
 
 ### Runtime Safety Boundary
 
 BondLens AI is not an investment advisory system. The API response includes `disclaimer`, `evidence_quality`, `llm_guardrail`, and `data_source` fields so callers can inspect data freshness, missing context, and LLM safety status.
+
+The portfolio UI intentionally renders evidence ledger, answer judge, risk profile, and replay summaries instead of raw JSON/code-like diagnostics. Raw contracts remain available through `/api/agent/query` and `/api/agent/schema`.
 
 ## 中文
 
@@ -127,12 +134,16 @@ OPENAI_TIMEOUT_SECONDS=20
 BOND_DATA_MODE=auto
 BOND_LIVE_CACHE_PATH=
 BOND_LIVE_CACHE_MAX_AGE_HOURS=24
+BOND_REPLAY_ENABLED=true
+BOND_REPLAY_DIR=
 ```
 
 - `BOND_DATA_MODE=auto` 会先请求 AkShare 实时数据，然后使用实时快照，最后使用本地 Excel 兜底。
 - `OPENAI_API_KEY` 是可选项。为空时使用确定性 fallback 输出。
 - `OPENAI_BASE_URL` 可以指向 Ollama 等 OpenAI-compatible 本地服务。
 - `OPENAI_TIMEOUT_SECONDS` 默认 `20` 秒，本地模型过慢时会安全回退，而不是拖到 gunicorn 超时。
+- `BOND_REPLAY_ENABLED` 控制 `/replay` 的运行回放摘要，默认开启。
+- `BOND_REPLAY_DIR` 默认是 `.tmp/replays`，该目录不会提交到 Git。
 
 ### Docker 连接 Ollama
 
@@ -157,7 +168,10 @@ docker compose up --build
 4. 在平台环境变量中设置 `SECRET_KEY`。
 5. 演示实时优先能力时使用 `BOND_DATA_MODE=auto`；需要稳定演示时使用 `static`。
 6. 如果不想依赖外部 LLM，保持 `OPENAI_API_KEY` 为空。
+7. 除非部署平台需要保留演示历史，否则 replay 存储保持临时即可。
 
 ### 运行时安全边界
 
 BondLens AI 不是投资顾问系统。API 响应包含 `disclaimer`、`evidence_quality`、`llm_guardrail` 和 `data_source` 字段，调用方可以检查数据新鲜度、缺失上下文和 LLM 安全状态。
+
+作品集页面默认展示证据账本、答案评审、风险画像和运行回放摘要，不展示原始 JSON/代码式调试面板。机器可读结构仍然通过 `/api/agent/query` 和 `/api/agent/schema` 提供。

@@ -3,11 +3,15 @@ from __future__ import annotations
 import json
 import os
 
+from .answer_judge import judge_answer
 from .data_loader import resolve_bond_data
+from .evidence_ledger import build_evidence_ledger
 from .evidence_quality import assess_evidence_quality
 from .llm_guardrail import assess_llm_faithfulness
 from .planner import classify_intent
+from .replay_store import save_replay
 from .risk_knowledge import retrieve_risk_explanations
+from .risk_profile import build_risk_profile
 from .schemas import AgentResponse
 from .tools import (
     compare_bond_to_market,
@@ -106,6 +110,22 @@ class BondAnalystAgent:
 
         use_llm_final = llm_result["status"] == "success" and llm_guardrail["status"] == "passed"
         final_answer = llm_result["text"] if use_llm_final else fallback_answer
+        final_answer_source = "llm" if use_llm_final else "deterministic_fallback"
+        answer_judge = judge_answer(
+            llm_status=llm_result["status"],
+            llm_guardrail=llm_guardrail,
+            evidence_quality=evidence_quality,
+            final_answer_source=final_answer_source,
+        )
+        risk_profile = build_risk_profile(report, data_source, evidence_quality, llm_guardrail)
+        evidence_ledger = build_evidence_ledger(
+            plan=plan,
+            report=report,
+            data_source=data_source,
+            evidence_quality=evidence_quality,
+            llm_guardrail=llm_guardrail,
+            final_answer_source=final_answer_source,
+        )
         tool_trace.append("-> final answer")
 
         response = {
@@ -119,11 +139,14 @@ class BondAnalystAgent:
             "data_source": data_source,
             "risk_explanations": risk_explanations,
             "evidence_quality": evidence_quality,
+            "evidence_ledger": evidence_ledger,
+            "answer_judge": answer_judge,
+            "risk_profile": risk_profile,
             "analysis": report["analysis"],
             "risk_notes": report["risk_notes"],
             "limitations": report["limitations"],
             "final_answer": final_answer,
-            "final_answer_source": "llm" if use_llm_final else "deterministic_fallback",
+            "final_answer_source": final_answer_source,
             "llm_enhanced_answer": llm_result["text"],
             "llm_guardrail": llm_guardrail,
             "used_llm": llm_result["status"] == "success",
@@ -131,8 +154,13 @@ class BondAnalystAgent:
             "llm_status": llm_result["status"],
             "llm_error": llm_result["error"],
             "disclaimer": DISCLAIMER,
+            "replay_id": None,
         }
-        return AgentResponse.model_validate(response).model_dump(mode="json")
+        validated = AgentResponse.model_validate(response).model_dump(mode="json")
+        replay_record = save_replay(validated)
+        if replay_record:
+            validated["replay_id"] = replay_record["id"]
+        return AgentResponse.model_validate(validated).model_dump(mode="json")
 
     def _try_llm_answer(self, question: str, plan: dict, report: dict) -> dict:
         base_url = os.environ.get("OPENAI_BASE_URL")

@@ -10,6 +10,7 @@ def test_agent_pages_smoke():
     assert response.status_code == 200
     assert b"Agent Console" in response.data
     assert b"Evidence Console" not in response.data
+    assert b"Planner JSON" not in response.data
 
 
 def test_agent_page_exposes_language_switch():
@@ -38,8 +39,27 @@ def test_agent_page_localizes_result_for_chinese():
     assert "最终回答" in html
     assert "问题：" in html
     assert "风险解释层" in html
+    assert "风险画像" in html
+    assert "证据账本" in html
+    assert "答案评审" in html
     assert "工具轨迹" in html
     assert "跳过：LLM 未启用" in html
+    assert "规划器 JSON" not in html
+    assert "数据证据 JSON" not in html
+
+
+def test_replay_page_smoke(monkeypatch, tmp_path):
+    monkeypatch.setenv("BOND_REPLAY_DIR", str(tmp_path))
+    client = app.test_client()
+    client.post("/agent", data={"question": "当前样本收益率分布是什么样？", "data_mode": "static", "lang": "zh"})
+
+    response = client.get("/replay?lang=zh")
+    html = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "Agent 回放仪表盘" in html
+    assert "当前样本收益率分布是什么样？" in html
+    assert "Evidence Console" not in html
 
 
 def test_healthz():
@@ -64,6 +84,8 @@ def test_agent_schema_endpoint():
     assert "api_error" in payload
     assert "final_answer" in payload["agent_response"]["properties"]
     assert "llm_guardrail" in payload["agent_response"]["properties"]
+    assert "answer_judge" in payload["agent_response"]["properties"]
+    assert "evidence_ledger" in payload["agent_response"]["properties"]
 
 
 def test_agent_api_smoke():
@@ -79,6 +101,9 @@ def test_agent_api_smoke():
     assert "llm_status" in payload
     assert payload["data_source"]["runtime_mode"] == "static_sample"
     assert payload["risk_explanations"]
+    assert payload["evidence_ledger"]
+    assert payload["answer_judge"]["status"] == "not_applicable"
+    assert payload["risk_profile"]["cards"]
     assert payload["evidence_quality"]["decision_confidence"] == "low"
     assert payload["used_llm"] is False
 

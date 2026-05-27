@@ -345,7 +345,7 @@
     line-height: 1.55;
   }
 
-  .raw-panel {
+  .detail-panel {
     margin-top: 18px;
   }
 
@@ -360,14 +360,74 @@
     font-weight: 720;
   }
 
-  pre {
-    overflow: auto;
-    max-height: 380px;
+  .risk-profile-grid,
+  .ledger-grid,
+  .judge-grid {
+    display: grid;
+    gap: 12px;
+  }
+
+  .risk-profile-grid {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+
+  .risk-profile-card,
+  .ledger-card,
+  .judge-card {
     padding: 14px;
-    background: #101a16;
-    color: #d8ece6;
-    font-size: 12px;
-    line-height: 1.5;
+    border: 1px solid var(--line);
+    background: #f9f6ef;
+  }
+
+  .risk-profile-card h3,
+  .ledger-card h3,
+  .judge-card h3 {
+    margin: 0 0 8px;
+    font-size: 15px;
+  }
+
+  .risk-profile-card p,
+  .ledger-card p,
+  .judge-card p,
+  .finding-list li {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .severity {
+    display: inline-block;
+    margin-bottom: 10px;
+    padding: 4px 8px;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .severity.high {
+    border-color: rgba(169, 66, 58, 0.35);
+    color: var(--red);
+  }
+
+  .severity.medium {
+    border-color: rgba(192, 122, 34, 0.35);
+    color: var(--amber);
+  }
+
+  .severity.low {
+    border-color: rgba(47, 125, 85, 0.35);
+    color: var(--green);
+  }
+
+  .finding-list {
+    display: grid;
+    gap: 8px;
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
   }
 
   @media (max-width: 1120px) {
@@ -407,7 +467,7 @@
   <section class="hero-copy">
     <p class="eyebrow" data-lang-zh="可解释债券分析智能体" data-lang-en="Explainable Bond Analysis Agent">可解释债券分析智能体</p>
     <h1>BondLens AI</h1>
-    <p class="hero-lead" data-lang-zh="面向中文债券市场的证据驱动分析工作台：实时 AkShare 优先，实时快照兜底，本地 Excel 保底；每个回答都展示工具轨迹、数据证据、风险解释、LLM guardrail 和非投资建议边界。" data-lang-en="An evidence-driven workspace for the Chinese bond market: AkShare live data first, cached snapshot fallback, local Excel as the final backup. Every answer exposes tool traces, data evidence, risk context, LLM guardrails, and a non-advisory boundary.">面向中文债券市场的证据驱动分析工作台：实时 AkShare 优先，实时快照兜底，本地 Excel 保底；每个回答都展示工具轨迹、数据证据、风险解释、LLM guardrail 和非投资建议边界。</p>
+    <p class="hero-lead" data-lang-zh="面向中文债券市场的证据驱动分析工作台：实时 AkShare 优先，实时快照兜底，本地 Excel 保底；每个回答都展示工具轨迹、证据账本、风险画像、答案评审和非投资建议边界。" data-lang-en="An evidence-driven workspace for the Chinese bond market: AkShare live data first, cached snapshot fallback, local Excel as the final backup. Every answer exposes tool traces, an evidence ledger, structured risk profile, answer judge, and a non-advisory boundary.">面向中文债券市场的证据驱动分析工作台：实时 AkShare 优先，实时快照兜底，本地 Excel 保底；每个回答都展示工具轨迹、证据账本、风险画像、答案评审和非投资建议边界。</p>
     <div class="example-strip" aria-label="示例问题">
       <div class="example-chip" data-lang-zh="当前样本收益率分布是什么样？" data-lang-en="What does the current yield distribution look like?">当前样本收益率分布是什么样？</div>
       <div class="example-chip" data-lang-zh="按收益率列出最高的前5只债券" data-lang-en="List the top 5 bonds by yield.">按收益率列出最高的前5只债券</div>
@@ -527,7 +587,7 @@
           {% endif %}
 
           {% if result.data_source.fallback_reason or result.data_source.storage %}
-            <details class="raw-panel">
+            <details class="detail-panel">
               <summary data-lang-zh="数据源详情" data-lang-en="Data Source Detail">数据源详情</summary>
               {% if result.data_source.fallback_reason %}
                 <p class="surface-subtitle" data-lang-zh="实时数据降级原因：{{ result.data_source.fallback_reason }}" data-lang-en="Live-data fallback reason: {{ result.data_source.fallback_reason }}">实时数据降级原因：{{ result.data_source.fallback_reason }}</p>
@@ -554,20 +614,37 @@
             <span class="badge" data-lang-zh="语言 {{ view.guardrail_language_label }}" data-lang-en="Language {{ result.llm_guardrail.language_status }}">语言 {{ view.guardrail_language_label }}</span>
           </div>
           <p class="surface-subtitle" data-lang-zh="{{ view.llm_guardrail_summary_by_lang.zh }}" data-lang-en="{{ view.llm_guardrail_summary_by_lang.en }}">{{ view.llm_guardrail_summary }}</p>
+          <div class="judge-grid">
+            <article class="judge-card">
+              <h3 data-lang-zh="答案评审" data-lang-en="Answer Judge">答案评审</h3>
+              <p data-lang-zh="{{ view.answer_judge_summary_by_lang.zh }}" data-lang-en="{{ view.answer_judge_summary_by_lang.en }}">{{ view.answer_judge_summary }}</p>
+              <div class="badge-row">
+                <span class="badge" data-lang-zh="评审 {{ view.answer_judge_status_label }}" data-lang-en="Judge {{ result.answer_judge.status }}">评审 {{ view.answer_judge_status_label }}</span>
+                <span class="badge" data-lang-zh="分数 {{ result.answer_judge.score }}/100" data-lang-en="Score {{ result.answer_judge.score }}/100">分数 {{ result.answer_judge.score }}/100</span>
+              </div>
+            </article>
+            {% for check in view.answer_judge_checks %}
+              <article class="judge-card">
+                <h3 data-lang-zh="{{ check.label_zh }}" data-lang-en="{{ check.label_en }}">{{ check.label }}</h3>
+                <p data-lang-zh="{{ check.detail_zh }}" data-lang-en="{{ check.detail_en }}">{{ check.detail }}</p>
+                <div class="badge-row">
+                  <span class="badge" data-lang-zh="{{ check.status_label }}" data-lang-en="{{ check.status }}">{{ check.status_label }}</span>
+                </div>
+              </article>
+            {% endfor %}
+          </div>
           {% if result.llm_error %}
             <p class="surface-subtitle">{{ result.llm_error }}</p>
           {% endif %}
-          {% if result.llm_guardrail.unsupported_numbers %}
-            <details>
-              <summary data-lang-zh="未被证据支持的数字" data-lang-en="Unsupported Numbers">未被证据支持的数字</summary>
-              <pre>{{ result.llm_guardrail.unsupported_numbers | tojson(indent=2) }}</pre>
-            </details>
-          {% endif %}
-          {% if result.llm_guardrail.unsafe_phrases %}
-            <details>
-              <summary data-lang-zh="不安全风险语言" data-lang-en="Unsafe Risk Language">不安全风险语言</summary>
-              <pre>{{ result.llm_guardrail.unsafe_phrases | tojson(indent=2) }}</pre>
-            </details>
+          {% if result.llm_guardrail.unsupported_numbers or result.llm_guardrail.unsafe_phrases %}
+            <ul class="finding-list">
+              {% for item in result.llm_guardrail.unsupported_numbers %}
+                <li data-lang-zh="未被证据支持的数字：{{ item.text }}" data-lang-en="Unsupported number: {{ item.text }}">未被证据支持的数字：{{ item.text }}</li>
+              {% endfor %}
+              {% for item in result.llm_guardrail.unsafe_phrases %}
+                <li data-lang-zh="不安全风险语言：{{ item.text }}" data-lang-en="Unsafe risk language: {{ item.text }}">不安全风险语言：{{ item.text }}</li>
+              {% endfor %}
+            </ul>
           {% endif %}
         </div>
       </section>
@@ -618,34 +695,49 @@
       <section class="surface">
         <div class="surface-header">
           <div>
-            <h2 class="surface-title" data-lang-zh="风险解释层" data-lang-en="Risk Explanation Layer">风险解释层</h2>
-            <p class="surface-subtitle" data-lang-zh="用于约束回答边界的固收风险上下文。" data-lang-en="Retrieved fixed-income context used to frame the answer.">用于约束回答边界的固收风险上下文。</p>
+            <h2 class="surface-title" data-lang-zh="风险画像" data-lang-en="Risk Profile">风险画像</h2>
+            <p class="surface-subtitle" data-lang-zh="{{ view.risk_profile_summary_by_lang.zh }}" data-lang-en="{{ view.risk_profile_summary_by_lang.en }}">{{ view.risk_profile_summary }}</p>
           </div>
+          <span class="severity {{ result.risk_profile.overall_level }}" data-lang-zh="总体 {{ view.risk_overall_label }}" data-lang-en="Overall {{ result.risk_profile.overall_level }}">总体 {{ view.risk_overall_label }}</span>
         </div>
-        <div class="surface-body split-list">
-          {% for item in view.risk_explanations %}
-            <article class="risk-item">
+        <div class="surface-body risk-profile-grid">
+          {% for item in view.risk_profile_cards %}
+            <article class="risk-profile-card">
+              <span class="severity {{ item.severity }}" data-lang-zh="{{ item.severity_label }}" data-lang-en="{{ item.severity }}">{{ item.severity_label }}</span>
               <h3 data-lang-zh="{{ item.title_zh }}" data-lang-en="{{ item.title_en }}">{{ item.title }}</h3>
-              <p data-lang-zh="{{ item.summary_zh }}" data-lang-en="{{ item.summary_en }}">{{ item.summary }}</p>
-              <ul>
-                {% for point in item.watch_points %}
-                  <li data-lang-zh="{{ item.watch_points_zh[loop.index0] if item.watch_points_zh|length > loop.index0 else point }}" data-lang-en="{{ item.watch_points_en[loop.index0] if item.watch_points_en|length > loop.index0 else point }}">{{ point }}</li>
-                {% endfor %}
-              </ul>
+              <p data-lang-zh="{{ item.signal_zh }}" data-lang-en="{{ item.signal_en }}">{{ item.signal }}</p>
+              <p data-lang-zh="{{ item.evidence_zh }}" data-lang-en="{{ item.evidence_en }}">{{ item.evidence }}</p>
+              <p data-lang-zh="{{ item.boundary_zh }}" data-lang-en="{{ item.boundary_en }}">{{ item.boundary }}</p>
             </article>
           {% endfor %}
         </div>
       </section>
     </div>
 
-    <section class="surface raw-panel">
+    <section class="surface detail-panel">
       <div class="surface-header">
         <div>
-          <h2 class="surface-title" data-lang-zh="证据控制台" data-lang-en="Evidence Console">证据控制台</h2>
+          <h2 class="surface-title" data-lang-zh="证据账本" data-lang-en="Evidence Ledger">证据账本</h2>
           <p class="surface-subtitle" data-lang-zh="{{ view.evidence_quality_summary_by_lang.zh }}" data-lang-en="{{ view.evidence_quality_summary_by_lang.en }}">{{ view.evidence_quality_summary }}</p>
         </div>
       </div>
       <div class="surface-body">
+        {% if view.evidence_ledger %}
+          <div class="ledger-grid">
+            {% for item in view.evidence_ledger %}
+              <article class="ledger-card">
+                <span class="severity {{ item.confidence }}" data-lang-zh="置信度 {{ item.confidence_label }}" data-lang-en="Confidence {{ item.confidence }}">置信度 {{ item.confidence_label }}</span>
+                <h3 data-lang-zh="{{ item.claim_zh }}" data-lang-en="{{ item.claim_en }}">{{ item.claim }}</h3>
+                <p data-lang-zh="{{ item.evidence_zh }}" data-lang-en="{{ item.evidence_en }}">{{ item.evidence }}</p>
+                <div class="badge-row">
+                  <span class="badge">{{ item.tool_label }}</span>
+                  <span class="badge">{{ item.source }}</span>
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        {% endif %}
+
         {% if view.outlier_records %}
           <h3 class="surface-title" data-lang-zh="收益率异常样本" data-lang-en="Yield Outliers">收益率异常样本</h3>
           <table class="data-table">
@@ -669,24 +761,6 @@
             </tbody>
           </table>
         {% endif %}
-        {% if result.data_evidence.comparison %}
-          <details>
-            <summary data-lang-zh="单券对比市场" data-lang-en="Bond vs Market">单券对比市场</summary>
-            <pre>{{ result.data_evidence.comparison | tojson(indent=2) }}</pre>
-          </details>
-        {% endif %}
-        <details>
-          <summary data-lang-zh="规划器 JSON" data-lang-en="Planner JSON">规划器 JSON</summary>
-          <pre>{{ result.plan | tojson(indent=2) }}</pre>
-        </details>
-        <details>
-          <summary data-lang-zh="证据质量 JSON" data-lang-en="Evidence Quality JSON">证据质量 JSON</summary>
-          <pre>{{ result.evidence_quality | tojson(indent=2) }}</pre>
-        </details>
-        <details>
-          <summary data-lang-zh="数据证据 JSON" data-lang-en="Data Evidence JSON">数据证据 JSON</summary>
-          <pre>{{ result.data_evidence | tojson(indent=2) }}</pre>
-        </details>
       </div>
     </section>
   </section>

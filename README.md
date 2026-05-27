@@ -6,7 +6,7 @@
 
 ![CI](https://github.com/Phoenix0531-sudo/bondlens-ai/actions/workflows/ci.yml/badge.svg)
 
-BondLens AI is a lightweight, evidence-grounded analysis agent for Chinese bond market data. It uses AkShare live bond market data by default, falls back to the latest cached live snapshot when live access is unavailable, then falls back to the preserved local Excel sample if no usable snapshot exists. Each answer returns a structured trace with data evidence, risk notes, guardrail status, and limitations.
+BondLens AI is a lightweight, evidence-grounded analysis agent for Chinese bond market data. It uses AkShare live bond market data by default, falls back to the latest cached live snapshot when live access is unavailable, then falls back to the preserved local Excel sample if no usable snapshot exists. Each answer returns a structured trace with an evidence ledger, answer judge, risk profile, guardrail status, and limitations.
 
 > Non-investment advice. For learning, research, and portfolio demonstration only.
 
@@ -39,11 +39,13 @@ BondLens AI does not ask an LLM to guess financial answers. The agent follows a 
 1. **Data resolver** loads AkShare live bond data first, then a cached live snapshot, then `data/testdata.xlsx` when needed.
 2. **Planner** classifies user intent and chooses tools.
 3. **Tools** run local Python analysis over the active data frame.
-4. **Evidence** is attached to the response as structured JSON.
+4. **Evidence** is attached to the response as structured data and rendered as reviewer-readable claims.
 5. **Report** is generated from the evidence, with risks and limitations.
 6. **Optional LLM** can polish the answer only after the local evidence exists. It supports OpenAI and OpenAI-compatible local endpoints such as Ollama.
 7. **LLM guardrail** checks numeric claims and unsafe investment-language patterns against structured evidence and falls back to the deterministic report if the LLM output is not safe to use.
-8. **Schema contract** validates the final API response with Pydantic before returning it.
+8. **Answer judge** records whether model output was accepted, rejected by guardrails, or bypassed.
+9. **Evidence ledger, risk profile, and replay store** make the answer auditable without showing raw JSON in the portfolio UI.
+10. **Schema contract** validates the final API response with Pydantic before returning it.
 
 If `OPENAI_API_KEY` is not set, the project still runs and uses deterministic fallback output.
 
@@ -53,7 +55,7 @@ If `OPENAI_API_KEY` is not set, the project still runs and uses deterministic fa
 - Tool trace: each planner/tool step is visible in the Web page and API response
 - Bond search by name, maturity, and yield range
 - Live data mode: AkShare `bond_spot_deal` current bond deal data
-- Live maturity enrichment: because `bond_spot_deal` does not provide native maturity, matched bonds are enriched from the local static sample and marked with maturity coverage metadata
+- Security-master reconciliation: because `bond_spot_deal` does not provide native maturity, matched bonds are enriched from the local static sample and marked with maturity coverage metadata
 - Cached live snapshot mode: latest successful AkShare fetch is reused when the live endpoint temporarily fails
 - Local fallback mode: `data/testdata.xlsx` remains available for offline demos and deterministic tests
 - Market summary: sample count, yield distribution, volume statistics
@@ -64,6 +66,10 @@ If `OPENAI_API_KEY` is not set, the project still runs and uses deterministic fa
 - Retrieval-augmented risk explanations for fixed-income concepts
 - Evidence quality scoring with confidence and freshness labels
 - LLM faithfulness guardrail for numeric evidence checks, unsafe investment-language checks, and safe fallback
+- Evidence ledger: turns tool outputs into claim/evidence/source/confidence records for review
+- Answer judge: explains why an LLM answer was accepted, rejected, or bypassed
+- Structured risk profile: data quality, credit context, liquidity, duration, outlier, and model-output risks
+- Replay dashboard: `/replay` summarizes recent Agent runs without exposing raw JSON by default
 - Pydantic response schema with `/api/agent/schema`
 - Lightweight `/healthz` endpoint for containers and deployment platforms
 - Agent eval and red-team eval suites for repeatable behavior and safety checks
@@ -81,7 +87,7 @@ flowchart TD
     D -->|ranking| G[rank_bonds]
     D -->|outlier_detection| H[detect_yield_outliers]
     D -->|bond_report| I[search_bonds + compare_bond_to_market + market/ranking/outlier tools]
-    E --> J[Evidence JSON]
+    E --> J[Structured Evidence]
     F --> J
     G --> J
     H --> J
@@ -95,6 +101,10 @@ flowchart TD
     P --> Q[LLM numeric and language guardrail]
     Q -->|passed| R[LLM final answer]
     Q -->|numeric or language failure| S[Deterministic fallback answer]
+    R --> T[Answer Judge + Evidence Ledger + Risk Profile]
+    S --> T
+    O --> T
+    T --> U[Replay Dashboard]
 ```
 
 ## Tool Trace Example
@@ -134,6 +144,10 @@ User question: 搜索23附息国债26并给出收益率分析
 │   ├── agent.py                 # Agent orchestration and LLM fallback status
 │   ├── planner.py               # Rule-based intent planner
 │   ├── data_loader.py           # AkShare live loading, snapshot cache, Excel fallback
+│   ├── evidence_ledger.py       # Claim/evidence/source/confidence ledger
+│   ├── answer_judge.py          # Deterministic judge for LLM acceptance/fallback
+│   ├── risk_profile.py          # Structured risk profile cards
+│   ├── replay_store.py          # Sanitized local run replay summaries
 │   ├── risk_knowledge.py        # Local fixed-income risk explanation retrieval
 │   ├── evidence_quality.py      # Evidence scoring, freshness, and confidence labels
 │   ├── llm_guardrail.py         # Numeric and risk-language checks for LLM answers
@@ -148,6 +162,7 @@ User question: 搜索23附息国债26并给出收益率分析
 │   ├── run_agent_evals.py       # Local eval runner
 │   └── run_red_team_evals.py    # Red-team eval runner
 ├── templates/agent.html         # Agent UI
+├── templates/replay.html        # Recent run replay dashboard
 ├── tests/                       # Unit and smoke tests
 ├── CONTRIBUTING.md
 ├── SECURITY.md
@@ -203,6 +218,8 @@ OPENAI_TIMEOUT_SECONDS=20
 BOND_DATA_MODE=auto
 BOND_LIVE_CACHE_PATH=
 BOND_LIVE_CACHE_MAX_AGE_HOURS=24
+BOND_REPLAY_ENABLED=true
+BOND_REPLAY_DIR=
 ```
 
 - `SECRET_KEY`: Flask session secret.
@@ -214,6 +231,8 @@ BOND_LIVE_CACHE_MAX_AGE_HOURS=24
 - `BOND_DATA_MODE`: `auto`, `live`, or `static`. `auto` tries AkShare first, then cached live snapshot, then local Excel fallback.
 - `BOND_LIVE_CACHE_PATH`: optional path for the AkShare snapshot CSV. Defaults to `.tmp/bond_spot_deal_snapshot.csv`.
 - `BOND_LIVE_CACHE_MAX_AGE_HOURS`: maximum accepted snapshot age before static fallback is used. Defaults to `24`.
+- `BOND_REPLAY_ENABLED`: set to `false` to disable local run replay summaries. Defaults to `true`.
+- `BOND_REPLAY_DIR`: optional replay directory. Defaults to `.tmp/replays`, which is ignored by Git.
 
 Local Ollama smoke example:
 
@@ -280,10 +299,13 @@ Key response fields:
 - `plan`: planner intent, selected tools, ranking/search parameters
 - `tools_used`: tools actually used for the answer
 - `tool_trace`: human-readable step trace
-- `data_evidence`: raw market/search/ranking/outlier/comparison evidence
+- `data_evidence`: machine-readable market/search/ranking/outlier/comparison evidence
 - `data_source`: active data source profile, including requested mode, runtime mode, provider, fetch time, row counts, and fallback reason
 - `risk_explanations`: retrieved fixed-income risk explanations
 - `evidence_quality`: score, confidence labels, coverage, freshness, and penalties
+- `evidence_ledger`: reviewer-readable claim, evidence, source, tool, and confidence records
+- `answer_judge`: final answer acceptance/rejection status for LLM output
+- `risk_profile`: structured data quality, credit, liquidity, duration, outlier, and model-risk cards
 - `final_answer`: either the LLM answer if it passes guardrails, or the deterministic report
 - `final_answer_source`: `llm` or `deterministic_fallback`
 - `llm_enhanced_answer`: raw LLM answer kept for debugging when available
@@ -295,9 +317,11 @@ Additional operational endpoints:
 ```text
 GET /healthz
 GET /api/agent/schema
+GET /replay
 ```
 
 `/api/agent/schema` returns the Pydantic JSON schemas for the request, response, health check, and error payloads.
+`/replay` shows sanitized recent run summaries for interview demos and debugging replay.
 
 Deployment notes are available in [docs/deployment.md](docs/deployment.md).
 
@@ -358,6 +382,17 @@ Every Agent answer includes an `evidence_quality` object with:
 - `coverage`: which evidence blocks were available
 - `penalties`: missing context that limits conclusions
 
+## Evidence Ledger, Answer Judge, and Replay
+
+The default Web UI avoids raw JSON/code-like diagnostic panels. Instead it presents:
+
+- **Evidence ledger:** claim/evidence/source/confidence records derived from the active tool outputs.
+- **Answer judge:** a deterministic acceptance layer showing whether LLM text was accepted, rejected by guardrails, or bypassed.
+- **Risk profile:** structured cards for data quality, credit context, liquidity, duration, yield outliers, and model-output risk.
+- **Replay dashboard:** `/replay` stores sanitized run summaries under `.tmp/replays` by default.
+
+Raw machine-readable contracts remain available through `/api/agent/query` and `/api/agent/schema`.
+
 ## Agent Eval
 
 Run deterministic behavior checks:
@@ -402,6 +437,7 @@ Coverage includes:
 - concrete bond report behavior
 - LLM disabled/success/failed status with mocks
 - LLM numeric and unsafe risk-language guardrails
+- evidence ledger, answer judge, risk profile, and replay store
 - Pydantic Agent response schema
 - health check and schema endpoints
 - live snapshot cache fallback
@@ -444,8 +480,10 @@ The `main` branch removes legacy login/database code, obsolete crawler code, old
 - **Tool calling design:** deterministic planner maps user intent to local Python tools.
 - **Live-first source design:** AkShare live data is the default, with cached live snapshot and static fallback layers for reliability.
 - **Evidence constraint:** final answers are generated from `data_evidence`, not free-form finance guessing.
+- **Evidence ledger:** UI turns data evidence into auditable claims instead of dumping raw JSON.
 - **Local LLM compatibility:** OpenAI-compatible endpoints can exercise the LLM path without a paid API key.
 - **LLM guardrail:** numeric claims and unsafe investment-language phrases are checked before an LLM answer can become final.
+- **Answer judge and replay:** accepted/rejected model output is visible and recent runs can be reviewed.
 - **Fallback design:** no API key required; OpenAI/local LLM path is optional and observable.
 - **Risk boundary:** output always includes limitations and non-investment-advice language.
 - **Eval method:** local behavior evals and red-team evals test intent, tool selection, answer constraints, and safety boundaries.
@@ -459,6 +497,7 @@ The `main` branch removes legacy login/database code, obsolete crawler code, old
 - Add PDF/Markdown report export
 - Add richer evidence-consistency evals across live snapshots and static fallback
 - Add duration, convexity, credit spread, and liquidity buckets
+- Add a background security-master refresh job when a stable bond detail source is available
 
 ## License
 

@@ -13,6 +13,9 @@ def test_agent_fallback_uses_local_tools_without_openai_key(monkeypatch):
     assert result["llm_status"] == "disabled"
     assert result["llm_error"] is None
     assert result["llm_guardrail"]["status"] == "not_run"
+    assert result["answer_judge"]["status"] == "not_applicable"
+    assert result["evidence_ledger"]
+    assert result["risk_profile"]["overall_level"] in {"low", "medium", "high"}
     assert result["plan"]["intent"] == "bond_report"
     assert result["data_source"]["source_id"] == "local_static_excel"
     assert result["data_source"]["active_live_feed"] is False
@@ -27,6 +30,7 @@ def test_agent_fallback_uses_local_tools_without_openai_key(monkeypatch):
     assert "Evidence Quality" in result["final_answer"]
     assert "非投资建议，仅用于学习和研究" in result["final_answer"]
     assert result["tool_trace"][-1] == "-> final answer"
+    assert result["replay_id"]
 
 
 def test_agent_tool_selection_for_market_overview(monkeypatch):
@@ -171,6 +175,7 @@ def test_agent_llm_status_success(monkeypatch):
     assert result["llm_status"] == "success"
     assert result["llm_error"] is None
     assert result["llm_guardrail"]["status"] == "passed"
+    assert result["answer_judge"]["status"] == "passed"
     assert result["final_answer"].startswith("LLM enhanced answer")
 
 
@@ -234,6 +239,7 @@ def test_agent_rejects_llm_output_with_unsupported_numeric_claim(monkeypatch):
     assert result["used_llm_in_final"] is False
     assert result["final_answer_source"] == "deterministic_fallback"
     assert result["llm_guardrail"]["status"] == "failed"
+    assert result["answer_judge"]["status"] == "failed_guardrail"
     assert result["llm_guardrail"]["numeric_status"] == "failed"
     assert result["llm_guardrail"]["language_status"] == "failed"
     assert result["llm_enhanced_answer"].startswith("样本中 99%")

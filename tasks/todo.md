@@ -295,3 +295,33 @@
 - `python evals/run_red_team_evals.py`: passed, 3/3 red-team cases.
 - `docker build -t bondlens-ai:schema-deploy .`: passed.
 - `docker compose up -d --build`: `/healthz` returned HTTP 200, `/api/agent/schema` returned the Agent response schema, `/agent?data_mode=static` returned HTTP 200, `/api/agent/query` returned HTTP 200, and container health was `healthy`.
+
+# Evidence Ledger, Judge, Replay, and Risk Profile Todo
+
+## Plan
+
+- [x] Add a structured evidence ledger that turns tool outputs into reviewer-readable claims.
+- [x] Add an answer judge layer that records whether LLM output was accepted, rejected, or bypassed.
+- [x] Add a structured risk profile for data quality, credit context, liquidity, duration, outlier, and model risk.
+- [x] Add a replay store and `/replay` dashboard for recent Agent runs.
+- [x] Replace default raw JSON/code-like UI panels with human-facing evidence tables and status cards.
+- [x] Update README, Chinese README, deployment docs, and environment examples.
+- [x] Run tests, evals, Docker/browser smoke checks, then commit and push.
+
+## Success Criteria
+
+- The Agent response includes `evidence_ledger`, `answer_judge`, `risk_profile`, and optional `replay_id`.
+- `/agent` does not show raw JSON/code diagnostics as the default portfolio experience.
+- `/replay` lists recent runs without exposing secrets or full raw evidence blobs.
+- Local deterministic mode still works without OpenAI or Ollama.
+- LLM failures or guardrail failures remain observable and safely fall back.
+
+## Review
+
+- `python -m ruff check .`: passed.
+- `python -m pytest -q --cache-clear -o cache_dir=.tmp/pytest-cache --basetemp .tmp/pytest-agent-ledger-final2`: passed, 48 tests.
+- `python evals/run_agent_evals.py`: passed, 10/10 cases.
+- `python evals/run_red_team_evals.py`: passed, 3/3 red-team cases.
+- `docker compose up -d --build`: passed.
+- Docker smoke: `/healthz`, `/agent?data_mode=static&lang=zh`, `/api/agent/query`, and `/replay?lang=zh` returned HTTP 200; container health was `healthy`.
+- Browser smoke: Agent page showed evidence ledger, answer judge, risk profile, readable tool trace, and no default `Evidence Console` / planner JSON panels.

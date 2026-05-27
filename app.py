@@ -6,6 +6,7 @@ from flask import Flask, jsonify, redirect, render_template, request, url_for
 from pydantic import ValidationError
 
 from bond_agent import BondAnalystAgent
+from bond_agent.replay_store import list_replays
 from bond_agent.schemas import AgentQueryRequest, ApiError, HealthResponse, api_schema_bundle
 
 
@@ -23,12 +24,14 @@ INTENT_LABELS = {
 }
 
 TOOL_LABELS = {
+    "data_source": {"zh": "数据源解析", "en": "Data source resolver"},
     "search_bonds": {"zh": "债券检索", "en": "Bond search"},
     "compare_bond_to_market": {"zh": "单券对比市场", "en": "Bond vs market"},
     "describe_market": {"zh": "市场概览", "en": "Market overview"},
     "rank_bonds": {"zh": "债券排序", "en": "Bond ranking"},
     "detect_yield_outliers": {"zh": "收益率异常检测", "en": "Yield outlier detection"},
     "generate_bond_report": {"zh": "生成分析报告", "en": "Report composition"},
+    "answer_selection": {"zh": "答案选择", "en": "Answer selection"},
 }
 
 RISK_TRANSLATIONS = {
@@ -126,6 +129,13 @@ def agent_schema():
     return jsonify(api_schema_bundle())
 
 
+@app.route("/replay")
+def replay_page():
+    lang = _resolve_language(request.values.get("lang"))
+    replays = [_build_replay_view(record, lang) for record in list_replays()]
+    return render_template("replay.html", replays=replays, lang=lang)
+
+
 def _normalize_data_mode(value: str | None) -> str:
     mode = (value or "auto").strip().lower()
     if mode not in DATA_MODES:
@@ -176,7 +186,7 @@ def _build_agent_view_model(result: dict, lang: str = "zh") -> dict:
         "tool_trace": [_localize_trace_item(item, lang) for item in result.get("tool_trace", [])],
         "tool_trace_by_lang": {
             "zh": [_localize_trace_item(item, "zh") for item in result.get("tool_trace", [])],
-            "en": result.get("tool_trace", []),
+            "en": [_localize_trace_item(item, "en") for item in result.get("tool_trace", [])],
         },
         "final_answer": _format_display_answer(result, lang),
         "final_answer_by_lang": {
@@ -184,6 +194,21 @@ def _build_agent_view_model(result: dict, lang: str = "zh") -> dict:
             "en": _format_display_answer(result, "en"),
         },
         "risk_explanations": [_risk_item_view(item, lang) for item in result.get("risk_explanations", [])],
+        "risk_profile_cards": [_risk_profile_card_view(item, lang) for item in result.get("risk_profile", {}).get("cards", [])],
+        "risk_profile_summary": _risk_profile_summary(result.get("risk_profile", {}), lang),
+        "risk_profile_summary_by_lang": {
+            "zh": _risk_profile_summary(result.get("risk_profile", {}), "zh"),
+            "en": _risk_profile_summary(result.get("risk_profile", {}), "en"),
+        },
+        "evidence_ledger": [_ledger_item_view(item, lang) for item in result.get("evidence_ledger", [])],
+        "answer_judge_summary": _answer_judge_summary(result.get("answer_judge", {}), lang),
+        "answer_judge_summary_by_lang": {
+            "zh": _answer_judge_summary(result.get("answer_judge", {}), "zh"),
+            "en": _answer_judge_summary(result.get("answer_judge", {}), "en"),
+        },
+        "answer_judge_checks": [_judge_check_view(item, lang) for item in result.get("answer_judge", {}).get("checks", [])],
+        "answer_judge_status_label": _localized_status(result.get("answer_judge", {}).get("status"), lang),
+        "risk_overall_label": _localized_status(result.get("risk_profile", {}).get("overall_level"), lang),
         "evidence_quality_summary": _evidence_quality_summary(result.get("evidence_quality", {}), lang),
         "evidence_quality_summary_by_lang": {
             "zh": _evidence_quality_summary(result.get("evidence_quality", {}), "zh"),
@@ -205,6 +230,22 @@ def _build_agent_view_model(result: dict, lang: str = "zh") -> dict:
     }
 
 
+def _build_replay_view(record: dict, lang: str) -> dict:
+    replay = {**record}
+    tools = record.get("tools_used") or []
+    replay["tool_labels"] = "、".join(_tool_label(tool, lang) for tool in tools)
+    replay["tool_labels_zh"] = "、".join(_tool_label(tool, "zh") for tool in tools)
+    replay["tool_labels_en"] = ", ".join(_tool_label(tool, "en") for tool in tools)
+    replay["intent_label"] = _intent_label(record.get("intent"), lang)
+    replay["intent_label_zh"] = _intent_label(record.get("intent"), "zh")
+    replay["intent_label_en"] = _intent_label(record.get("intent"), "en")
+    data_source = record.get("data_source") or {}
+    replay["data_runtime_label"] = _localized_status(data_source.get("runtime_mode"), lang)
+    replay["data_runtime_label_zh"] = _localized_status(data_source.get("runtime_mode"), "zh")
+    replay["data_runtime_label_en"] = _localized_status(data_source.get("runtime_mode"), "en")
+    return replay
+
+
 def _metric(label_en: str, label_zh: str, value: object, lang: str, suffix: str = "") -> dict:
     if value is None:
         display = "N/A"
@@ -224,6 +265,57 @@ def _range_text(low: object, high: object) -> str:
     return f"{low} - {high}"
 
 
+def _yield_summary_sentence(summary: dict, lang: str) -> str:
+    if not summary:
+        return "收益率摘要暂缺。" if lang == "zh" else "Yield summary is not available."
+    if lang == "en":
+        return (
+            f"Yield median {summary.get('median')}%, mean {summary.get('mean')}%, "
+            f"range {summary.get('min')}% to {summary.get('max')}%."
+        )
+    return (
+        f"收益率中位数 {summary.get('median')}%，均值 {summary.get('mean')}%，"
+        f"区间 {summary.get('min')}% 到 {summary.get('max')}%。"
+    )
+
+
+def _rank_label(column: object, lang: str) -> str:
+    mapping = {
+        "收盘到期收益率(%)": {"zh": "收盘到期收益率", "en": "closing yield"},
+        "交易量(亿元)": {"zh": "交易量", "en": "trading volume"},
+        "待偿期(年)": {"zh": "待偿期", "en": "maturity"},
+        "收盘净价(元)": {"zh": "收盘净价", "en": "clean price"},
+    }
+    return mapping.get(str(column), {}).get(lang, str(column or "N/A"))
+
+
+def _format_search_criteria(criteria: dict, lang: str) -> str:
+    if not criteria:
+        return "无额外筛选条件" if lang == "zh" else "no additional filters"
+
+    labels = {
+        "name": {"zh": "名称包含", "en": "name contains"},
+        "min_maturity": {"zh": "最短待偿期", "en": "minimum maturity"},
+        "max_maturity": {"zh": "最长待偿期", "en": "maximum maturity"},
+        "min_yield": {"zh": "最低收益率", "en": "minimum yield"},
+        "max_yield": {"zh": "最高收益率", "en": "maximum yield"},
+    }
+    parts = []
+    for key in ["name", "min_maturity", "max_maturity", "min_yield", "max_yield"]:
+        value = criteria.get(key)
+        if value is not None:
+            parts.append(f"{labels[key][lang]} {value}")
+    return "；".join(parts) if parts and lang == "zh" else ", ".join(parts) if parts else ("无额外筛选条件" if lang == "zh" else "no additional filters")
+
+
+def _yes_no(value: object, lang: str) -> str:
+    if value is True:
+        return "是" if lang == "zh" else "yes"
+    if value is False:
+        return "否" if lang == "zh" else "no"
+    return "未知" if lang == "zh" else "unknown"
+
+
 def _distribution_bars(distribution: dict) -> list[dict]:
     max_count = max(distribution.values(), default=0)
     bars = []
@@ -234,9 +326,6 @@ def _distribution_bars(distribution: dict) -> list[dict]:
 
 
 def _format_display_answer(result: dict, lang: str) -> str:
-    if lang == "en":
-        return result.get("final_answer", "")
-
     evidence = result.get("data_evidence", {})
     market = evidence.get("market") or {}
     ranking = evidence.get("ranking") or {}
@@ -247,12 +336,15 @@ def _format_display_answer(result: dict, lang: str) -> str:
     plan = result.get("plan") or {}
     evidence_quality = result.get("evidence_quality") or {}
 
+    if lang == "en":
+        return _format_display_answer_en(result, market, ranking, outliers, comparison, search, data_source, plan, evidence_quality)
+
     lines = [
         f"问题：{result.get('question')}",
-        f"意图：{_intent_label(plan.get('intent'), 'zh')}（{plan.get('intent')}）",
+        f"本次任务：{_intent_label(plan.get('intent'), 'zh')}",
         "",
         "使用工具：",
-        *[f"- {_tool_label(tool, 'zh')}（{tool}）" for tool in result.get("tools_used", [])],
+        *[f"- {_tool_label(tool, 'zh')}" for tool in result.get("tools_used", [])],
         "",
         "数据证据：",
     ]
@@ -275,13 +367,13 @@ def _format_display_answer(result: dict, lang: str) -> str:
 
     if market:
         lines.append(f"- 样本数量：{market.get('sample_count', 0)}")
-        lines.append(f"- 收益率摘要：{market.get('yield_summary', {})}")
+        lines.append(f"- {_yield_summary_sentence(market.get('yield_summary', {}), 'zh')}")
     if ranking:
-        lines.append(f"- 排序字段：{ranking.get('rank_by')}")
+        lines.append(f"- 排序依据：{_rank_label(ranking.get('rank_by'), 'zh')}")
     if outliers:
         lines.append(f"- 异常样本数量：{outliers.get('outlier_count', 0)}")
     if search:
-        lines.append(f"- 检索条件：{search.get('criteria', {})}")
+        lines.append(f"- 检索条件：{_format_search_criteria(search.get('criteria', {}), 'zh')}")
         lines.append(f"- 检索命中数量：{search.get('match_count', 0)}")
         for index, record in enumerate(search.get("records", [])[:5], start=1):
             lines.append(
@@ -290,9 +382,9 @@ def _format_display_answer(result: dict, lang: str) -> str:
             )
     if comparison:
         lines.append(
-            f"- 债券相对市场：收益率分位数={comparison.get('yield_percentile')}，"
-            f"成交量分位数={comparison.get('volume_percentile')}，"
-            f"是否收益率异常={comparison.get('is_yield_outlier')}"
+            f"- 债券相对市场：收益率处于样本第 {comparison.get('yield_percentile')} 分位，"
+            f"成交量处于第 {comparison.get('volume_percentile')} 分位，"
+            f"是否收益率异常：{_yes_no(comparison.get('is_yield_outlier'), 'zh')}"
         )
 
     if result.get("risk_explanations"):
@@ -330,27 +422,131 @@ def _format_display_answer(result: dict, lang: str) -> str:
     return "\n".join(lines)
 
 
+def _format_display_answer_en(
+    result: dict,
+    market: dict,
+    ranking: dict,
+    outliers: dict,
+    comparison: dict,
+    search: dict,
+    data_source: dict,
+    plan: dict,
+    evidence_quality: dict,
+) -> str:
+    lines = [
+        f"Question: {result.get('question')}",
+        f"Task: {_intent_label(plan.get('intent'), 'en')}",
+        "",
+        "Tools used:",
+        *[f"- {_tool_label(tool, 'en')}" for tool in result.get("tools_used", [])],
+        "",
+        "Data evidence:",
+    ]
+
+    if data_source:
+        lines.append(f"- Source: {data_source.get('source_name')} ({_localized_status(data_source.get('runtime_mode'), 'en')})")
+        if data_source.get("fetched_at"):
+            lines.append(f"- Fetched at: {data_source.get('fetched_at')}")
+        if data_source.get("fallback_reason"):
+            lines.append(f"- Live-data fallback reason: {data_source.get('fallback_reason')}")
+        lines.append(f"- Rows: {data_source.get('row_count')}; valid yield records: {data_source.get('valid_yield_count')}")
+        if data_source.get("maturity_coverage"):
+            coverage = data_source["maturity_coverage"]
+            lines.append(
+                f"- Maturity coverage: {_coverage_ratio_text(coverage)}; "
+                f"{coverage.get('filled_count')} filled and {coverage.get('missing_count')} missing."
+            )
+
+    if market:
+        lines.append(f"- Sample size: {market.get('sample_count', 0)}")
+        lines.append(f"- {_yield_summary_sentence(market.get('yield_summary', {}), 'en')}")
+    if ranking:
+        lines.append(f"- Ranking basis: {_rank_label(ranking.get('rank_by'), 'en')}")
+    if outliers:
+        lines.append(f"- Yield outlier count: {outliers.get('outlier_count', 0)}")
+    if search:
+        lines.append(f"- Search criteria: {_format_search_criteria(search.get('criteria', {}), 'en')}")
+        lines.append(f"- Search matches: {search.get('match_count', 0)}")
+        for index, record in enumerate(search.get("records", [])[:5], start=1):
+            lines.append(
+                f"  {index}. {record.get('债券简称')} | maturity {_display_maturity(record)} | "
+                f"yield {record.get('收盘到期收益率(%)')}% | volume {record.get('交易量(亿元)')} bn CNY"
+            )
+    if comparison:
+        lines.append(
+            f"- Bond vs market: yield percentile {comparison.get('yield_percentile')}, "
+            f"volume percentile {comparison.get('volume_percentile')}, "
+            f"yield outlier: {_yes_no(comparison.get('is_yield_outlier'), 'en')}."
+        )
+
+    if result.get("risk_explanations"):
+        lines.extend(["", "Risk context:"])
+        for item in result["risk_explanations"]:
+            localized = _localize_risk_item(item, "en")
+            lines.append(f"- {localized['title']}: {localized['summary']}")
+
+    if evidence_quality:
+        lines.extend(
+            [
+                "",
+                "Evidence quality:",
+                f"- Score: {evidence_quality.get('score')}/100",
+                f"- Level: {_localized_status(evidence_quality.get('level'), 'en')}",
+                f"- Data freshness: {_localized_status(evidence_quality.get('data_freshness'), 'en')}",
+                f"- Decision confidence: {_localized_status(evidence_quality.get('decision_confidence'), 'en')}",
+                f"- Summary: {_evidence_quality_summary(evidence_quality, 'en')}",
+            ]
+        )
+
+    lines.extend(
+        [
+            "",
+            "Analysis:",
+            *[f"- {item}" for item in result.get("analysis", [])],
+            "",
+            "Risk notes:",
+            *[f"- {item}" for item in result.get("risk_notes", [])],
+            "",
+            "Limitations:",
+            *[f"- {item}" for item in result.get("limitations", [])],
+        ]
+    )
+    return "\n".join(lines)
+
+
 def _localize_trace_item(item: str, lang: str) -> str:
-    if lang == "en":
-        return item
     if item.startswith("User question:"):
-        return item.replace("User question:", "用户问题：", 1)
+        label = "User question:" if lang == "en" else "用户问题："
+        return item.replace("User question:", label, 1)
     if item == "-> final answer":
-        return "-> 最终回答"
-    replacements = {
-        "-> data_source": "-> 数据源",
-        "-> planner": "-> 规划器",
-        "-> llm_guardrail": "-> LLM 护栏",
-        "skipped: llm_disabled": "跳过：LLM 未启用",
-        "skipped: llm_failed": "跳过：LLM 调用失败",
-        "intent=": "意图=",
-        "mode=": "模式=",
-        "source=": "来源=",
-    }
-    localized = item
-    for source, target in replacements.items():
-        localized = localized.replace(source, target)
-    return localized
+        return "Final answer selected" if lang == "en" else "最终回答已生成"
+    if item.startswith("-> data_source"):
+        return "Data source resolved" if lang == "en" else "数据源已确定"
+    if item.startswith("-> planner"):
+        return "Planner selected the analysis path" if lang == "en" else "规划器已选择分析路径"
+    if item.startswith("-> search_bonds"):
+        return "Bond search executed" if lang == "en" else "已执行债券检索"
+    if item.startswith("-> compare_bond_to_market"):
+        return "Bond-to-market comparison executed" if lang == "en" else "已执行单券市场对比"
+    if item.startswith("-> describe_market"):
+        return "Market overview generated" if lang == "en" else "已生成市场概览"
+    if item.startswith("-> rank_bonds"):
+        return "Bond ranking generated" if lang == "en" else "已生成债券排序"
+    if item.startswith("-> detect_yield_outliers"):
+        return "Yield outlier scan completed" if lang == "en" else "已完成收益率异常扫描"
+    if item.startswith("-> generate_bond_report"):
+        return "Evidence-based report composed" if lang == "en" else "已组合证据报告"
+    if item.startswith("-> llm_guardrail"):
+        if "llm_disabled" in item:
+            return "LLM guardrail: skipped, LLM disabled" if lang == "en" else "LLM 护栏：跳过：LLM 未启用"
+        if "llm_failed" in item:
+            return "LLM guardrail: skipped, LLM call failed" if lang == "en" else "LLM 护栏：跳过：LLM 调用失败"
+        if "status=passed" in item:
+            return "LLM guardrail: passed" if lang == "en" else "LLM 护栏：通过"
+        if "status=failed" in item:
+            return "LLM guardrail: failed" if lang == "en" else "LLM 护栏：失败"
+        return "LLM guardrail completed" if lang == "en" else "LLM 护栏已完成"
+    return item
 
 
 def _localize_risk_item(item: dict, lang: str) -> dict:
@@ -385,6 +581,61 @@ def _risk_item_view(item: dict, lang: str) -> dict:
     }
 
 
+def _risk_profile_card_view(item: dict, lang: str) -> dict:
+    title = item.get(f"title_{lang}", item.get("title_zh", ""))
+    signal = item.get(f"signal_{lang}", item.get("signal_zh", ""))
+    evidence = item.get(f"evidence_{lang}", item.get("evidence_zh", ""))
+    boundary = item.get(f"action_boundary_{lang}", item.get("action_boundary_zh", ""))
+    return {
+        "id": item.get("id"),
+        "severity": item.get("severity"),
+        "severity_label": _localized_status(item.get("severity"), lang),
+        "title": title,
+        "title_zh": item.get("title_zh", ""),
+        "title_en": item.get("title_en", ""),
+        "signal": signal,
+        "signal_zh": item.get("signal_zh", ""),
+        "signal_en": item.get("signal_en", ""),
+        "evidence": evidence,
+        "evidence_zh": item.get("evidence_zh", ""),
+        "evidence_en": item.get("evidence_en", ""),
+        "boundary": boundary,
+        "boundary_zh": item.get("action_boundary_zh", ""),
+        "boundary_en": item.get("action_boundary_en", ""),
+    }
+
+
+def _ledger_item_view(item: dict, lang: str) -> dict:
+    return {
+        "id": item.get("id"),
+        "claim": item.get(f"claim_{lang}", item.get("claim_zh", "")),
+        "claim_zh": item.get("claim_zh", ""),
+        "claim_en": item.get("claim_en", ""),
+        "evidence": item.get(f"evidence_{lang}", item.get("evidence_zh", "")),
+        "evidence_zh": item.get("evidence_zh", ""),
+        "evidence_en": item.get("evidence_en", ""),
+        "source": item.get("source", ""),
+        "tool": item.get("tool", ""),
+        "tool_label": _tool_label(item.get("tool", ""), lang) if item.get("tool") else item.get("tool", ""),
+        "confidence": item.get("confidence", ""),
+        "confidence_label": _localized_status(item.get("confidence"), lang),
+    }
+
+
+def _judge_check_view(item: dict, lang: str) -> dict:
+    return {
+        "id": item.get("id"),
+        "label": item.get(f"label_{lang}", item.get("label_zh", "")),
+        "label_zh": item.get("label_zh", ""),
+        "label_en": item.get("label_en", ""),
+        "status": item.get("status"),
+        "status_label": _localized_status(item.get("status"), lang),
+        "detail": item.get(f"detail_{lang}", item.get("detail_zh", "")),
+        "detail_zh": item.get("detail_zh", ""),
+        "detail_en": item.get("detail_en", ""),
+    }
+
+
 def _intent_label(intent: str | None, lang: str) -> str:
     return INTENT_LABELS.get(intent or "", {}).get(lang, intent or "unknown")
 
@@ -414,6 +665,10 @@ def _localized_status(value: object, lang: str) -> str:
             "live_fetch": "Live fetch",
             "cached_live_snapshot": "Cached snapshot",
             "static_snapshot": "Static snapshot",
+            "safe_fallback": "Safe fallback",
+            "failed_guardrail": "Guardrail failed",
+            "not_applicable": "Not applicable",
+            "warning": "Warning",
         }
         return mapping_en.get(str(value), str(value))
     mapping = {
@@ -433,6 +688,10 @@ def _localized_status(value: object, lang: str) -> str:
         "live_fetch": "实时获取",
         "cached_live_snapshot": "缓存快照",
         "static_snapshot": "静态快照",
+        "safe_fallback": "安全回退",
+        "failed_guardrail": "护栏失败",
+        "not_applicable": "不适用",
+        "warning": "提醒",
     }
     return mapping.get(str(value), str(value))
 
@@ -453,6 +712,18 @@ def _llm_guardrail_summary(guardrail: dict, lang: str) -> str:
     if status == "passed":
         return "LLM 输出已通过数值一致性和风险语言检查。"
     return "LLM 输出未通过可信度检查，页面使用规则兜底报告作为最终答案。"
+
+
+def _answer_judge_summary(answer_judge: dict, lang: str) -> str:
+    if lang == "en":
+        return answer_judge.get("verdict_en", "")
+    return answer_judge.get("verdict_zh", "")
+
+
+def _risk_profile_summary(risk_profile: dict, lang: str) -> str:
+    if lang == "en":
+        return risk_profile.get("summary_en", "")
+    return risk_profile.get("summary_zh", "")
 
 
 def _coverage_ratio_text(coverage: dict) -> str:

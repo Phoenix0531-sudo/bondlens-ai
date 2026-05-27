@@ -89,6 +89,58 @@ class DataEvidence(FlexibleModel):
     comparison: dict[str, Any] = Field(default_factory=dict)
 
 
+class EvidenceLedgerItem(FlexibleModel):
+    id: str
+    claim_zh: str
+    claim_en: str
+    evidence_zh: str
+    evidence_en: str
+    source: str
+    tool: str
+    confidence: str
+    limitations: list[str] = Field(default_factory=list)
+    fields: list[str] = Field(default_factory=list)
+
+
+class AnswerJudgeCheck(FlexibleModel):
+    id: str
+    label_zh: str
+    label_en: str
+    status: str
+    detail_zh: str
+    detail_en: str
+
+
+class AnswerJudge(FlexibleModel):
+    status: str
+    score: int
+    judge_type: str
+    verdict_zh: str
+    verdict_en: str
+    recommended_action: str
+    checks: list[AnswerJudgeCheck] = Field(default_factory=list)
+
+
+class RiskProfileCard(FlexibleModel):
+    id: str
+    title_zh: str
+    title_en: str
+    severity: Literal["low", "medium", "high"]
+    signal_zh: str
+    signal_en: str
+    evidence_zh: str
+    evidence_en: str
+    action_boundary_zh: str
+    action_boundary_en: str
+
+
+class RiskProfile(FlexibleModel):
+    overall_level: Literal["low", "medium", "high"]
+    cards: list[RiskProfileCard] = Field(default_factory=list)
+    summary_zh: str
+    summary_en: str
+
+
 class AgentResponse(BaseModel):
     agent: str
     subtitle: str
@@ -100,6 +152,9 @@ class AgentResponse(BaseModel):
     data_source: DataSourceProfile
     risk_explanations: list[RiskExplanation]
     evidence_quality: EvidenceQuality
+    evidence_ledger: list[EvidenceLedgerItem] = Field(default_factory=list)
+    answer_judge: AnswerJudge
+    risk_profile: RiskProfile
     analysis: list[str]
     risk_notes: list[str]
     limitations: list[str]
@@ -112,6 +167,7 @@ class AgentResponse(BaseModel):
     llm_status: LLMStatus
     llm_error: str | None = None
     disclaimer: str
+    replay_id: str | None = None
 
 
 class HealthResponse(BaseModel):
